@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include "socket.h"
+#include "plain_socket.h"
 
 static void connect_host(const std::string& host, int port, struct sockaddr_in *sin) {
     struct hostent *hp = gethostbyname(host.c_str());
@@ -23,46 +23,50 @@ static void connect_host(const std::string& host, int port, struct sockaddr_in *
     sin->sin_port = htons(port);
 }
 
-cmd::socket::socket(const std::string& host, int port) : socket {host.c_str(), port} {
-}
-
-cmd::socket::socket(const char *host, int port) : sock_fd {0} {
-    connect_host(host, port, &sin);
+cmd::plain_socket::plain_socket() : sock_fd {0} {
     if ((sock_fd = ::socket(PF_INET, SOCK_STREAM, 0)) < 0)
         throw std::runtime_error(strerror(errno));
 }
 
-cmd::socket::socket(int sock_fd, struct sockaddr_in sin) {
-    this->sock_fd = sock_fd;
-    this->sin = sin;
-}
-
-cmd::socket::~socket() {
+cmd::plain_socket::~plain_socket() {
     close();
 }
 
-void cmd::socket::connect() {
+void cmd::plain_socket::connect(const char *host, int port) {
+    connect_host(host, port, &sin);
     if (::connect(sock_fd, (struct sockaddr*) &sin, sizeof(sin)) < 0)
         throw std::runtime_error(strerror(errno));
 }
 
-void cmd::socket::close() {
+void cmd::plain_socket::connect(const std::string &host, int port) {
+    connect(host.c_str(), port);
+}
+
+void cmd::plain_socket::close() {
     if (sock_fd >= 0 && (sock_fd = ::close(sock_fd)) == -1)
         throw std::runtime_error(strerror(errno));
 }
 
-void cmd::socket::send(char *buffer, int size, int flags) {
+void cmd::plain_socket::send(const char *buffer, int size, int flags) {
     ::send(sock_fd, buffer, size, flags);
 }
 
-void cmd::socket::send(const std::string& str, int flags) {
+void cmd::plain_socket::send(const uint8_t *buffer, int size, int flags) {
+    ::send(sock_fd, buffer, size, flags);
+}
+
+void cmd::plain_socket::send(const std::string& str, int flags) {
     ::send(sock_fd, str.c_str(), str.size(), flags);
 }
 
-int cmd::socket::recv(char *buffer, int size, int flags) {
+int cmd::plain_socket::recv(char *buffer, int size, int flags) {
     return ::recv(sock_fd, buffer, size, flags);
 }
 
-int cmd::socket::recv(std::vector<char>& buf, int flags) {
+int cmd::plain_socket::recv(uint8_t *buffer, int size, int flags) {
+    return ::recv(sock_fd, buffer, size, flags);
+}
+
+int cmd::plain_socket::recv(std::vector<char>& buf, int flags) {
     return ::recv(sock_fd, &buf[0], buf.capacity(), flags);
 }
