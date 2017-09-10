@@ -1,16 +1,18 @@
 #ifndef CMD_TLS_SOCKET
 #define CMD_TLS_SOCKET
 
-#include <tls.h>
+#include <openssl/ssl.h>
 #include <string>
 
 #include "socket.h"
+#include "plain_socket.h"
+#include "ssl_manager.h"
 
 namespace cmd {
 
 class tls_socket : public cmd::socket {
-public:    
-    tls_socket(struct tls_config *tls_conf);
+public:
+    tls_socket(SSL_CTX *context);
     ~tls_socket();
     void connect(const std::string &host, int port);
     void connect(const char *host, int port);
@@ -23,7 +25,8 @@ public:
     int recv(std::vector<char>& buf, int flags = 0);
 
 private:
-    struct tls *client; 
+    SSL *ssl;
+    BIO *connection;
 };
 
 };

@@ -25,6 +25,7 @@ public:
     int recv(char *buffer, int size, int flags = 0);
     int recv(uint8_t *buffer, int size, int flags = 0);
     int recv(std::vector<char>& buf, int flags = 0);
+    int get_fd();
 
 private:
     int sock_fd;

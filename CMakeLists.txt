@@ -5,8 +5,6 @@ set(CMAKE_CXX_STANDARD 11)
 
 project(ssl)
 
-include_directories(/usr/local/include/libressl)
-
 set(SOURCE_FILES
     src/Main.cc
     src/socket.h
@@ -14,8 +12,10 @@ set(SOURCE_FILES
     src/plain_socket.h
     src/tls_socket.cc
     src/tls_socket.h
+    src/ssl_manager.cc
+    src/ssl_manager.h
     )
 
 add_executable(main ${SOURCE_FILES})
 
-target_link_libraries(main m tls)
+target_link_libraries(main ssl crypto)

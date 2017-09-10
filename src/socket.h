@@ -1,6 +1,7 @@
 #ifndef CMD_SOCKET_H
 #define CMD_SOCKET_H
 
+#include <memory>
 #include <vector>
 
 namespace cmd {
@@ -18,6 +19,7 @@ public:
     virtual int recv(char *buffer, int size, int flags = 0) = 0;
     virtual int recv(uint8_t *buffer, int size, int flags = 0) = 0;
     virtual int recv(std::vector<char>& buf, int flags = 0) = 0;
+    typedef std::shared_ptr<cmd::socket> ptr;
 };
 
 };

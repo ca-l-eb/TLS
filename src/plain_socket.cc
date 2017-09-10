@@ -70,3 +70,7 @@ int cmd::plain_socket::recv(uint8_t *buffer, int size, int flags) {
 int cmd::plain_socket::recv(std::vector<char>& buf, int flags) {
     return ::recv(sock_fd, &buf[0], buf.capacity(), flags);
 }
+
+int cmd::plain_socket::get_fd() {
+    return sock_fd;
+}
