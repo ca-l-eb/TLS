@@ -9,13 +9,15 @@
 #include "tls_socket.h"
 #include "ssl_manager.h"
 
-static void print_error_info() {
+static void throw_error_info(const std::string &msg) {
     int error = ERR_get_error();
-    if (error != 0)
-        std::cerr << ERR_error_string(error, NULL) << "\n";
+    if (error != 0) {
+        std::string error_string = std::string(ERR_error_string(error, NULL));
+        throw std::runtime_error(msg + "::" + error_string);
+    }
 }
 
-static void check_ssl_error(SSL *ssl, int ret) {
+static void check_ssl_error(SSL *ssl, int ret, const std::string &msg) {
     int ssl_error = SSL_get_error(ssl, ret);
     switch (ssl_error) {
         case SSL_ERROR_NONE:
@@ -46,44 +48,75 @@ static void check_ssl_error(SSL *ssl, int ret) {
             std::cerr << "SSL_ERROR_SSL\n";
             break;
     }
-    print_error_info();
+    throw_error_info(msg);
+}
+
+static void print_cert_info(X509 *cert) {
+    X509_NAME *name = X509_NAME_new();
+    std::cout << "Subject:\n";
+    name = X509_get_subject_name(cert);
+    X509_NAME_print_ex_fp(stdout, name, 0, XN_FLAG_MULTILINE);
+    std::cout << "\n\nIssuer:\n";
+    name = X509_get_issuer_name(cert);
+    X509_NAME_print_ex_fp(stdout, name, 0, XN_FLAG_MULTILINE);
+    std::cout << "\n";
 }
 
 cmd::tls_socket::tls_socket(SSL_CTX *context) {
-    ssl = SSL_new(context);
+    connection = BIO_new_ssl_connect(context);
+    if (connection == NULL) {
+        throw_error_info("Could not create SSL connection object from SSL context");
+    }
 }
 
 cmd::tls_socket::~tls_socket() {
     close();
-    SSL_free(ssl);
+    if (connection)
+        BIO_free_all(connection);
 }
 
 void cmd::tls_socket::connect(const char *host, int port) {
-    sock.connect(host, port);
-    int sock_fd = sock.get_fd();
-    int error = 0;
+    std::string full_host = std::string(host);
+    full_host += ":" + std::to_string(port);
 
-    // Attach the SSL object to the existing TCP connection
-    int ret = SSL_set_fd(ssl, sock_fd);
-    print_error_info();
+    long ret = BIO_set_conn_hostname(connection, full_host.c_str());
+    if (ret != 1)
+        check_ssl_error(ssl, ret, "Could not find host " + full_host);
 
-    ret = SSL_connect(ssl);
-    if (ret != 1) {
-        check_ssl_error(ssl, ret);
-        throw std::runtime_error("Could not connect with SSL to host " + std::string(host));
-    }
+    // Get ssl object from BIO object
+    BIO_get_ssl(connection, &ssl);
+    if (ssl == NULL)
+        throw_error_info("Could not get SSL object from BIO");
+
+    const char* const PREFERRED_CIPHERS = "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4";
+    ret = SSL_set_cipher_list(ssl, PREFERRED_CIPHERS);
+    if (ret != 1)
+        throw_error_info("Could not set cipher list");
+
+    ret = SSL_set_tlsext_host_name(ssl, host);
+    if (ret != 1)
+        throw_error_info("Could not set TLS extension for hostname verification");
+
+    // TCP connect
+    ret = BIO_do_connect(connection);
+    if (ret != 1)
+        throw_error_info("Could not connect to " + full_host);
+
+    // SSL handshake
+    ret = BIO_do_handshake(connection);
+    if (ret != 1)
+        throw_error_info("Error completing TLS handshake");
 
     X509 *cert = SSL_get_peer_certificate(ssl);
-    if (cert == NULL) {
-        print_error_info();
-        throw std::runtime_error("Could not retrieve certificate from host " + std::string(host));
-    }
+    if (cert == NULL)
+        throw_error_info("Could not retrieved certificate from " + full_host);
+
+    print_cert_info(cert);
     X509_free(cert);
 
     long verified = SSL_get_verify_result(ssl);
-    if (verified != X509_V_OK) {
-        throw std::runtime_error("Could not verify host " + std::string(host));
-    }
+    if (verified != X509_V_OK)
+        throw std::runtime_error("Could not verify certificate for " + full_host);
 }
 
 void cmd::tls_socket::connect(const std::string &host, int port) {
@@ -92,18 +125,17 @@ void cmd::tls_socket::connect(const std::string &host, int port) {
 
 void cmd::tls_socket::close() {
     SSL_shutdown(ssl);
-    sock.close();
 }
 
 void cmd::tls_socket::send(const char *buffer, int size, int flags) {
     int ret = 0;
     while (size > 0) {
-        ret = SSL_write(ssl, buffer + ret, size - ret);
-        if (ret > 0)
+        ret = BIO_write(connection, buffer, size);
+        if (ret > 0) {
+            size -= ret;
             continue;
-
-        check_ssl_error(ssl, ret);
-        throw std::runtime_error("Could not write to SSL connection");
+        }
+        check_ssl_error(ssl, ret, "Could not write to SSL connection");
     }
 }
 
@@ -116,13 +148,12 @@ void cmd::tls_socket::send(const std::string& str, int flags) {
 }
 
 int cmd::tls_socket::recv(char *buffer, int size, int flags) {
-    int ret = SSL_read(ssl, buffer, size);
+    int ret = BIO_read(connection, buffer, size);
     if (ret > 0)
         return ret;
-    int error_code = SSL_get_error(ssl, ret);
-    char *e = ERR_error_string(error_code, NULL);
-    std::cout << e << "\n";
-    throw std::runtime_error("Error code: " + std::to_string(error_code));
+
+    check_ssl_error(ssl, ret, "Could not read from SSL connection");
+    return 0;
 }
 
 int cmd::tls_socket::recv(uint8_t *buffer, int size, int flags) {

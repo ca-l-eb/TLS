@@ -17,12 +17,12 @@ static void print_error_info() {
 }
 
 cmd::ssl_manager::ssl_manager() {
+    OpenSSL_add_ssl_algorithms();
     SSL_load_error_strings();
     ERR_load_crypto_strings();
     SSL_library_init();
 
-    int error = ERR_get_error();
-    assert (error == 0);
+    print_error_info();
 
     method = TLS_method();
     if (method == NULL) {
@@ -35,6 +35,13 @@ cmd::ssl_manager::ssl_manager() {
         print_error_info();
         throw std::runtime_error("Could not create OpenSSL context");
     }
+
+    SSL_CTX_set_verify_depth(context, 4);
+    print_error_info();
+
+    const long flags = SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION;
+    SSL_CTX_set_options(context, flags);
+    print_error_info();
 
     // Use default certificate store (/etc/ssl/cert.pem)
     // and directory chain (/etc/ssl/certs/)
