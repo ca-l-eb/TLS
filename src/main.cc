@@ -34,6 +34,8 @@ int main(int argc, char *argv[]) {
         r.set_header("Client-ID", "mptmk1yiiqjdz560cy354ehkrh4xpo");
         r.connect();
         r.response();
+        int s = r.status_code();
+        std::cout << "Status: " << s << "\n";
 
         exit(1);
 

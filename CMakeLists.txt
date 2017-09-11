@@ -18,6 +18,10 @@ set(SOURCE_FILES
     src/tokenizer.h
     src/http_request.cc
     src/http_request.h
+    src/http_response.cc
+    src/http_response.h
+    src/stream.cc
+    src/stream.h
     )
 
 add_executable(main ${SOURCE_FILES})

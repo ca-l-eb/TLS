@@ -2,12 +2,14 @@
 #define CMD_HTTP_REQUEST_H
 
 #include <string>
+#include <vector>
 #include <memory>
 #include <map>
 
 #include <openssl/ssl.h>
 
 #include "socket.h"
+#include "http_response.h"
 
 namespace cmd {
 
@@ -18,15 +20,16 @@ public:
     void set_header(const std::string &header, const std::string &value);
     void set_body(const std::string &body);
     void connect();
-    int response_code();
-    std::string response();
+    cmd::http_response response();
 
 private:
     cmd::socket::ptr sock;
-    std::string host, request, resource, body, response_str;
+    // Sending information
+    std::string host, request_method, resource, body;
     std::map<std::string, std::string> headers;
-    int port, code;
-    void read_response();
+
+    int port;
+    void setup_socket(const std::string &proto, SSL_CTX *context);
 };
 
 };

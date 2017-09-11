@@ -23,10 +23,3 @@ char *cmd::tokenizer::get_line(char *buffer, int size, std::string &write_to, li
     tok = WANT_MORE;
     return buffer;
 }
-
-static void check_line(cmd::line_token t) {
-    if (t == cmd::line_token::COMPLETE)
-        std::cout << "Complete line\n";
-    else 
-        std::cout << "Incomplete line\n";
-}
