@@ -3,7 +3,7 @@
 
 #include <openssl/ssl.h>
 
-#include "tls_socket.h"
+#include "socket.h"
 
 namespace cmd {
 
@@ -12,6 +12,7 @@ public:
     ssl_manager();
     ~ssl_manager();
     SSL_CTX *get_context() const;
+    cmd::socket::ptr get_socket_ptr();
 
 private:
     SSL_CTX *context;

@@ -14,6 +14,10 @@ set(SOURCE_FILES
     src/tls_socket.h
     src/ssl_manager.cc
     src/ssl_manager.h
+    src/tokenizer.cc
+    src/tokenizer.h
+    src/http_request.cc
+    src/http_request.h
     )
 
 add_executable(main ${SOURCE_FILES})

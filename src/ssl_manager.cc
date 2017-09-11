@@ -9,6 +9,7 @@
 #include <openssl/err.h>
 
 #include "ssl_manager.h"
+#include "tls_socket.h"
 
 static void print_error_info() {
     int error = ERR_get_error();
@@ -17,7 +18,6 @@ static void print_error_info() {
 }
 
 cmd::ssl_manager::ssl_manager() {
-    OpenSSL_add_ssl_algorithms();
     SSL_load_error_strings();
     ERR_load_crypto_strings();
     SSL_library_init();
@@ -43,8 +43,8 @@ cmd::ssl_manager::ssl_manager() {
     SSL_CTX_set_options(context, flags);
     print_error_info();
 
-    // Use default certificate store (/etc/ssl/cert.pem)
-    // and directory chain (/etc/ssl/certs/)
+    // Use default certificate store and directory chain
+    // (/etc/ssl/cert.pem and /etc/ssl/certs/ on Arch Linux)
     int ret = SSL_CTX_set_default_verify_paths(context);
     if (ret != 1) {
         print_error_info();
@@ -59,4 +59,8 @@ cmd::ssl_manager::~ssl_manager() {
 
 SSL_CTX *cmd::ssl_manager::get_context() const {
     return context;
+}
+
+cmd::socket::ptr cmd::ssl_manager::get_socket_ptr() {
+    return std::make_shared<cmd::tls_socket>(context);
 }

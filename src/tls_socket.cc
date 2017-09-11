@@ -21,10 +21,10 @@ static void check_ssl_error(SSL *ssl, int ret, const std::string &msg) {
     int ssl_error = SSL_get_error(ssl, ret);
     switch (ssl_error) {
         case SSL_ERROR_NONE:
-            std::cerr << "SSL_ERROR_NONE\n";
+            // No error
             break;
         case SSL_ERROR_ZERO_RETURN:
-            std::cerr << "SSL_ERROR_ZERO_RETURN\n";
+            // Connection closed cleanly
             break;
         case SSL_ERROR_WANT_READ:
             std::cerr << "SSL_ERROR_WANT_READ\n";
@@ -43,23 +43,13 @@ static void check_ssl_error(SSL *ssl, int ret, const std::string &msg) {
             break;
         case SSL_ERROR_SYSCALL:
             std::cerr << "SSL_ERROR_SYSCALL\n";
+            throw_error_info(msg);
             break;
         case SSL_ERROR_SSL:
             std::cerr << "SSL_ERROR_SSL\n";
+            throw_error_info(msg);
             break;
     }
-    throw_error_info(msg);
-}
-
-static void print_cert_info(X509 *cert) {
-    X509_NAME *name = X509_NAME_new();
-    std::cout << "Subject:\n";
-    name = X509_get_subject_name(cert);
-    X509_NAME_print_ex_fp(stdout, name, 0, XN_FLAG_MULTILINE);
-    std::cout << "\n\nIssuer:\n";
-    name = X509_get_issuer_name(cert);
-    X509_NAME_print_ex_fp(stdout, name, 0, XN_FLAG_MULTILINE);
-    std::cout << "\n";
 }
 
 cmd::tls_socket::tls_socket(SSL_CTX *context) {
@@ -110,8 +100,6 @@ void cmd::tls_socket::connect(const char *host, int port) {
     X509 *cert = SSL_get_peer_certificate(ssl);
     if (cert == NULL)
         throw_error_info("Could not retrieved certificate from " + full_host);
-
-    print_cert_info(cert);
     X509_free(cert);
 
     long verified = SSL_get_verify_result(ssl);
