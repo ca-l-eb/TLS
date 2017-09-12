@@ -38,6 +38,9 @@ void cmd::http_response::read_response(cmd::stream &stream)
     }
     process_headers();
 
+    if (status == 204)
+        return;  // No content
+
     if (type == CHUNKED)
         do_chunked(stream);
     else if (type == LENGTH)

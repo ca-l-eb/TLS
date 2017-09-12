@@ -14,24 +14,22 @@
 
 int main(int argc, char *argv[])
 {
-    std::string host = "https://www.alucard.io";
-    std::string resource = "index.html";
+    std::string host = "https://www.alucard.io:443";
 
     if (argc >= 2) {
         host = std::string(argv[1]);
-    }
-    if (argc >= 3) {
-        resource = std::string(argv[2]);
     }
     try {
         cmd::ssl_manager manager;
         SSL_CTX *context = manager.get_context();
 
         cmd::http_request r{host, context};
-        r.set_header("Client-ID", "mptmk1yiiqjdz560cy354ehkrh4xpo");
+        // r.set_resource("/twitchauth.html");
         r.set_request_method("GET");
         r.connect();
+
         cmd::http_response response = r.response();
+
         std::cout << "Status: " << response.status_code() << "\n";
         std::cout << "-------------------------HEADERS-------------------------\n";
         for (std::string &s : response.headers()) {
@@ -42,6 +40,8 @@ int main(int argc, char *argv[])
         std::cout << "---------------------------BODY--------------------------\n"
                   << response.body();
         std::cout << "\n---------------------------------------------------------\n";
+
+        exit(0);
 
         cmd::socket::ptr conn = std::make_shared<cmd::tls_socket>(context);
         conn->connect("irc.chat.twitch.tv", 443);

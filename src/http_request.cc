@@ -1,4 +1,5 @@
 #include <iostream>
+#include <regex>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -8,22 +9,23 @@
 #include "stream.h"
 #include "tls_socket.h"
 
-cmd::http_request::http_request(const std::string &url, SSL_CTX *context) : request_method{"GET"}
+cmd::http_request::http_request(const std::string &url, SSL_CTX *context)
+    : request_method{"GET"}, resource{"/"}, port{-1}
 {
-    // Extract host and uri element from url
-    std::size_t proto_end = url.find("://");
-    if (proto_end == std::string::npos)
-        throw std::runtime_error("Could not find protocol in url: " + url);
+    std::regex re{"^(https?)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9$-_.+!*()#%&?<>]*)?$"};
+    std::smatch matcher;
+    std::regex_match(url, matcher, re);
 
-    std::string proto = url.substr(0, proto_end);
-
-    std::size_t offset = proto_end + 3;  // Skip ://
-    std::size_t host_end = url.find("/", offset);
-    host = url.substr(offset, host_end - offset);
-
-    resource = "/";
-    if (host_end != std::string::npos)
-        resource += url.substr(host_end + 1, std::string::npos);
+    std::string proto;
+    if (matcher.size() > 0) {
+        proto = matcher.str(1);
+        host = matcher.str(2);
+        if (matcher.str(3) != "")
+            port = std::stoi(matcher.str(3));
+        if (matcher.str(4) != "")
+            resource = matcher.str(4);
+    } else
+        throw std::runtime_error("Invalid url: " + url);
 
     // Set Host header because many servers require it
     set_header("Host", host);
@@ -36,10 +38,12 @@ void cmd::http_request::setup_socket(const std::string &proto, SSL_CTX *context)
 {
     if (proto == "http") {
         sock = std::make_shared<cmd::plain_socket>();
-        port = 80;
+        if (port == -1)  // Use default port 80 if not specified
+            port = 80;
     } else if (proto == "https") {
         sock = std::make_shared<cmd::tls_socket>(context);
-        port = 443;
+        if (port == -1)
+            port = 443;
     } else
         throw std::runtime_error("Unsupported protocol: " + proto);
 }
@@ -69,6 +73,10 @@ void cmd::http_request::connect()
         msg += body;
 
     sock->send(msg);
+
+    headers.clear();           // Clear headers for next connect()
+    set_header("Host", host);  // Reset Host
+    resource = "/";            // Default resource
 }
 
 cmd::http_response cmd::http_request::response()
@@ -77,3 +85,5 @@ cmd::http_response cmd::http_request::response()
     cmd::http_response r{s};
     return r;
 }
+
+void cmd::http_request::set_resource(const std::string &resource) { this->resource = resource; }

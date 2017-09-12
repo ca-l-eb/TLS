@@ -21,12 +21,12 @@ public:
     void set_request_method(const std::string &method);
     void set_header(const std::string &header, const std::string &value);
     void set_body(const std::string &body);
+    void set_resource(const std::string &resource);
     void connect();
     cmd::http_response response();
 
 private:
     cmd::socket::ptr sock;
-    // Sending information
     std::string host, request_method, resource, body;
     std::map<std::string, std::string> headers;
 
