@@ -62,7 +62,10 @@ void cmd::http_request::set_request_method(const std::string &request)
 
 void cmd::http_request::connect()
 {
-    sock->connect(host, port);
+    static bool init = false;
+    if (!init)
+        sock->connect(host, port);
+    init = true;
     std::string msg;
     msg += request_method + " " + resource + " HTTP/1.1\r\n";
     for (auto it = headers.begin(); it != headers.end(); ++it) {
@@ -81,9 +84,11 @@ void cmd::http_request::connect()
 
 cmd::http_response cmd::http_request::response()
 {
-    cmd::stream s{sock};
-    cmd::http_response r{s};
-    return r;
+    // Make a shared stream to be used for multiple requests
+    if (stream.get() == nullptr)
+        stream = std::unique_ptr<cmd::stream>(new cmd::stream{sock});
+    http_response response{*stream};
+    return response;
 }
 
 void cmd::http_request::set_resource(const std::string &resource) { this->resource = resource; }

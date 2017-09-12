@@ -24,11 +24,27 @@ int main(int argc, char *argv[])
         SSL_CTX *context = manager.get_context();
 
         cmd::http_request r{host, context};
-        // r.set_resource("/twitchauth.html");
         r.set_request_method("GET");
         r.connect();
 
+        r.set_resource("/fail.html");
+        r.connect();
+        sleep(1);
+
         cmd::http_response response = r.response();
+
+        std::cout << "Status: " << response.status_code() << "\n";
+        std::cout << "-------------------------HEADERS-------------------------\n";
+        for (std::string &s : response.headers()) {
+            std::cout << s << "\n";
+        }
+        std::cout << "---------------------------------------------------------\n";
+
+        std::cout << "---------------------------BODY--------------------------\n"
+                  << response.body();
+        std::cout << "\n---------------------------------------------------------\n";
+
+        response = r.response();
 
         std::cout << "Status: " << response.status_code() << "\n";
         std::cout << "-------------------------HEADERS-------------------------\n";

@@ -11,6 +11,7 @@
 
 #include "http_response.h"
 #include "socket.h"
+#include "stream.h"
 
 namespace cmd
 {
@@ -29,6 +30,7 @@ private:
     cmd::socket::ptr sock;
     std::string host, request_method, resource, body;
     std::map<std::string, std::string> headers;
+    std::unique_ptr<cmd::stream> stream;
 
     int port;
     void setup_socket(const std::string &proto, SSL_CTX *context);
