@@ -1,13 +1,9 @@
 #include <cstring>
 
-#include "tokenizer.h"
 #include "stream.h"
+#include "tokenizer.h"
 
-cmd::stream::stream(cmd::socket::ptr sock) :
-    sock {sock},
-    remaining_in_buffer {0}
-{
-}
+cmd::stream::stream(cmd::socket::ptr sock) : sock{sock}, remaining_in_buffer{0} {}
 
 std::string cmd::stream::next_line()
 {
@@ -50,8 +46,7 @@ int cmd::stream::read(std::string &s, int amount)
             remaining_in_buffer -= amount;
             buf_ptr += amount;
             break;
-        }
-        else {
+        } else {
             s.append(buf_ptr, remaining_in_buffer);
             amount -= remaining_in_buffer;
             remaining_in_buffer = 0;
@@ -69,8 +64,7 @@ int cmd::stream::read(char *buf, int amount)
             remaining_in_buffer -= amount;
             buf_ptr += amount;
             break;
-        }
-        else {
+        } else {
             std::memcpy(buf, buf_ptr, remaining_in_buffer);
             amount -= remaining_in_buffer;
             remaining_in_buffer = 0;
@@ -79,12 +73,12 @@ int cmd::stream::read(char *buf, int amount)
     return read;
 }
 
-void cmd::stream::buffer_data() 
+void cmd::stream::buffer_data()
 {
     // Only buffer data if there is no more in buffer
     if (remaining_in_buffer == 0) {
         remaining_in_buffer = sock->recv(buffer, sizeof(buffer));
-        buf_ptr = buffer; // Reset buf_ptr
+        buf_ptr = buffer;  // Reset buf_ptr
     }
 }
 

@@ -1,19 +1,21 @@
 #ifndef CMD_HTTP_REQUEST_H
 #define CMD_HTTP_REQUEST_H
 
+#include <map>
+#include <memory>
+#include <regex>
 #include <string>
 #include <vector>
-#include <memory>
-#include <map>
 
 #include <openssl/ssl.h>
 
-#include "socket.h"
 #include "http_response.h"
+#include "socket.h"
 
-namespace cmd {
-
-class http_request {
+namespace cmd
+{
+class http_request
+{
 public:
     http_request(const std::string &url, SSL_CTX *context);
     void set_request_method(const std::string &method);
@@ -31,7 +33,6 @@ private:
     int port;
     void setup_socket(const std::string &proto, SSL_CTX *context);
 };
-
 };
 
 #endif

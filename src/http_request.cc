@@ -5,18 +5,19 @@
 
 #include "http_request.h"
 #include "plain_socket.h"
-#include "tls_socket.h"
 #include "stream.h"
+#include "tls_socket.h"
 
-cmd::http_request::http_request(const std::string &url, SSL_CTX *context) : status {0}, request_method {"GET"} {
+cmd::http_request::http_request(const std::string &url, SSL_CTX *context) : request_method{"GET"}
+{
     // Extract host and uri element from url
     std::size_t proto_end = url.find("://");
     if (proto_end == std::string::npos)
         throw std::runtime_error("Could not find protocol in url: " + url);
 
     std::string proto = url.substr(0, proto_end);
-    
-    std::size_t offset = proto_end + 3; // Skip ://
+
+    std::size_t offset = proto_end + 3;  // Skip ://
     std::size_t host_end = url.find("/", offset);
     host = url.substr(offset, host_end - offset);
 
@@ -31,32 +32,32 @@ cmd::http_request::http_request(const std::string &url, SSL_CTX *context) : stat
     setup_socket(proto, context);
 }
 
-void cmd::http_request::setup_socket(const std::string &proto, SSL_CTX *context) {
+void cmd::http_request::setup_socket(const std::string &proto, SSL_CTX *context)
+{
     if (proto == "http") {
         sock = std::make_shared<cmd::plain_socket>();
         port = 80;
-    }
-    else if (proto == "https") {
+    } else if (proto == "https") {
         sock = std::make_shared<cmd::tls_socket>(context);
         port = 443;
-    }
-    else 
+    } else
         throw std::runtime_error("Unsupported protocol: " + proto);
 }
 
-void cmd::http_request::set_header(const std::string &header, const std::string &value) {
+void cmd::http_request::set_header(const std::string &header, const std::string &value)
+{
     headers[header] = value;
 }
 
-void cmd::http_request::set_body(const std::string &body) {
-    this->body = body; 
+void cmd::http_request::set_body(const std::string &body) { this->body = body; }
+
+void cmd::http_request::set_request_method(const std::string &request)
+{
+    this->request_method = request;
 }
 
-void cmd::http_request::set_request_method(const std::string &request) {
-    this-> request_method = request;
-}
-
-void cmd::http_request::connect() {
+void cmd::http_request::connect()
+{
     sock->connect(host, port);
     std::string msg;
     msg += request_method + " " + resource + " HTTP/1.1\r\n";
@@ -72,5 +73,7 @@ void cmd::http_request::connect() {
 
 cmd::http_response cmd::http_request::response()
 {
-    return cmd::http_response {cmd::stream{sock}};
+    cmd::stream s{sock};
+    cmd::http_response r{s};
+    return r;
 }

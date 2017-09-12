@@ -1,23 +1,25 @@
-#include <memory>
-#include <stdexcept>
 #include <cassert>
 #include <iostream>
+#include <memory>
+#include <stdexcept>
 
+#include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
-#include <openssl/err.h>
 
 #include "ssl_manager.h"
 #include "tls_socket.h"
 
-static void print_error_info() {
+static void print_error_info()
+{
     int error = ERR_get_error();
     if (error != 0)
         std::cerr << ERR_error_string(error, NULL) << "\n";
 }
 
-cmd::ssl_manager::ssl_manager() {
+cmd::ssl_manager::ssl_manager()
+{
     SSL_load_error_strings();
     ERR_load_crypto_strings();
     SSL_library_init();
@@ -52,15 +54,15 @@ cmd::ssl_manager::ssl_manager() {
     }
 }
 
-cmd::ssl_manager::~ssl_manager() {
+cmd::ssl_manager::~ssl_manager()
+{
     SSL_CTX_free(context);
     ERR_free_strings();
 }
 
-SSL_CTX *cmd::ssl_manager::get_context() const {
-    return context;
-}
+SSL_CTX *cmd::ssl_manager::get_context() const { return context; }
 
-cmd::socket::ptr cmd::ssl_manager::get_socket_ptr() {
+cmd::socket::ptr cmd::ssl_manager::get_socket_ptr()
+{
     return std::make_shared<cmd::tls_socket>(context);
 }

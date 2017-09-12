@@ -3,14 +3,12 @@
 
 #include <string>
 
-namespace cmd {
+namespace cmd
+{
+enum line_token { WANT_MORE, COMPLETE };
 
-enum line_token {
-    WANT_MORE,
-    COMPLETE
-};
-
-class tokenizer {
+class tokenizer
+{
 public:
     tokenizer();
     // Get next line from buffer (up to size), line buffers to write_to.
@@ -18,7 +16,6 @@ public:
     // Returns the address of where to continue looking for next line
     char *get_line(char *buffer, int size, std::string &write_to, line_token &tok);
 };
-
 };
 
 #endif

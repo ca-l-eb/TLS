@@ -5,9 +5,10 @@
 
 #include "socket.h"
 
-namespace cmd {
-
-class ssl_manager {
+namespace cmd
+{
+class ssl_manager
+{
 public:
     ssl_manager();
     ~ssl_manager();
@@ -18,7 +19,6 @@ private:
     SSL_CTX *context;
     const SSL_METHOD *method;
 };
-
 };
 
 #endif

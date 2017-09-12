@@ -1,21 +1,21 @@
-#include <iostream>
-#include <string>
-#include <cstdlib>
-#include <memory>
 #include <unistd.h>
+#include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <string>
 
-#include "ssl_manager.h"
-#include "socket.h"
+#include "http_request.h"
+#include "http_response.h"
 #include "plain_socket.h"
+#include "socket.h"
+#include "ssl_manager.h"
 #include "tls_socket.h"
 #include "tokenizer.h"
-#include "http_request.h"
 
-int main(int argc, char *argv[]) {
-    std::string host = "irc.chat.twitch.tv";
+int main(int argc, char *argv[])
+{
+    std::string host = "https://www.alucard.io";
     std::string resource = "index.html";
-
-
 
     if (argc >= 2) {
         host = std::string(argv[1]);
@@ -24,69 +24,43 @@ int main(int argc, char *argv[]) {
         resource = std::string(argv[2]);
     }
     try {
-
         cmd::ssl_manager manager;
-        SSL_CTX* context = manager.get_context();
+        SSL_CTX *context = manager.get_context();
 
-        cmd::http_request r ("https://api.twitch.tv/kraken/streams/?stream_type=live&limit=5", context);
-        r.set_request_method("GET");
-        r.set_header("Connection", "close");
+        cmd::http_request r{host, context};
         r.set_header("Client-ID", "mptmk1yiiqjdz560cy354ehkrh4xpo");
+        r.set_request_method("GET");
         r.connect();
-        r.response();
-        int s = r.status_code();
-        std::cout << "Status: " << s << "\n";
-
-        exit(1);
-
-
-
-
-        cmd::tls_socket conn {context};
-
-        conn.connect(host, 443);
-        std::string request;
-        request += "GET /" + resource + " HTTP/1.1\r\n";
-        request += "Host: " + host + "\r\n";
-        request += "Client-ID: mptmk1yiiqjdz560cy354ehkrh4xpo\r\n";
-        request += "Connection: close\r\n";
-        request += "\r\n"; // End of header section
-
-
-//        request += "PASS oauth:u1vju09sa06pkijp49gnqni25lc7a9\n";
-//        request += "NICK exclamation_point_meme\n";
-//        request += "join #shroud\njoin #summit1g\n";
-
-        conn.send(request);
-
-        int recv = 0;
-        char buffer[2048];
-        std::string complete;
-
-        std::string line;
-        cmd::tokenizer t;
-        cmd::line_token tok;
-
-        while ((recv = conn.recv(buffer, 2048)) > 0) {
-            int remaining = recv;
-//            std::cout << "\nRead " << recv << " bytes\n";
-            char *buf_ptr = buffer; 
-            while (remaining > 0) {
-                char *next = t.get_line(buf_ptr, remaining, line, tok);
-                if (tok == cmd::line_token::COMPLETE) {
-                    complete += line + "\n";
-//                    std::cout << "C: '" << line << "'\n";
-                    line.clear();
-                }
-                remaining -= next - buf_ptr;
-                buf_ptr = next;
-            }
-
+        cmd::http_response response = r.response();
+        std::cout << "Status: " << response.status_code() << "\n";
+        std::cout << "-------------------------HEADERS-------------------------\n";
+        for (std::string &s : response.headers()) {
+            std::cout << s << "\n";
         }
-        std::cout <<"\n\nComplete response:\n\n";
-        std::cout << complete << "\n";
-    }
-    catch(std::exception& e) {
+        std::cout << "---------------------------------------------------------\n";
+
+        std::cout << "---------------------------BODY--------------------------\n"
+                  << response.body();
+        std::cout << "\n---------------------------------------------------------\n";
+
+        cmd::socket::ptr conn = std::make_shared<cmd::tls_socket>(context);
+        conn->connect("irc.chat.twitch.tv", 443);
+
+        std::string request;
+        request += "PASS oauth:u1vju09sa06pkijp49gnqni25lc7a9\n";
+        request += "NICK exclamation_point_meme\n";
+        request += "join #shroud\njoin #summit1g\n";
+        conn->send(request);
+
+        cmd::stream stream{conn};
+        std::string line;
+        while (stream.has_more()) {
+            line.clear();
+            stream.next_line(line);
+            std::cout << line << "\n";
+        }
+
+    } catch (std::exception &e) {
         std::cerr << e.what() << "\n";
         std::exit(1);
     }

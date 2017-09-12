@@ -1,15 +1,16 @@
-#include <string>
-#include <stdexcept>
-#include <iostream>
-#include <unistd.h>
 #include <errno.h>
+#include <unistd.h>
+#include <iostream>
+#include <stdexcept>
+#include <string>
 
 #include <openssl/err.h>
 
-#include "tls_socket.h"
 #include "ssl_manager.h"
+#include "tls_socket.h"
 
-static void throw_error_info(const std::string &msg) {
+static void throw_error_info(const std::string &msg)
+{
     int error = ERR_get_error();
     if (error != 0) {
         std::string error_string = std::string(ERR_error_string(error, NULL));
@@ -17,7 +18,8 @@ static void throw_error_info(const std::string &msg) {
     }
 }
 
-static void check_ssl_error(SSL *ssl, int ret, const std::string &msg) {
+static void check_ssl_error(SSL *ssl, int ret, const std::string &msg)
+{
     int ssl_error = SSL_get_error(ssl, ret);
     switch (ssl_error) {
         case SSL_ERROR_NONE:
@@ -52,20 +54,23 @@ static void check_ssl_error(SSL *ssl, int ret, const std::string &msg) {
     }
 }
 
-cmd::tls_socket::tls_socket(SSL_CTX *context) {
+cmd::tls_socket::tls_socket(SSL_CTX *context)
+{
     connection = BIO_new_ssl_connect(context);
     if (connection == NULL) {
         throw_error_info("Could not create SSL connection object from SSL context");
     }
 }
 
-cmd::tls_socket::~tls_socket() {
+cmd::tls_socket::~tls_socket()
+{
     close();
     if (connection)
         BIO_free_all(connection);
 }
 
-void cmd::tls_socket::connect(const char *host, int port) {
+void cmd::tls_socket::connect(const char *host, int port)
+{
     std::string full_host = std::string(host);
     full_host += ":" + std::to_string(port);
 
@@ -78,7 +83,7 @@ void cmd::tls_socket::connect(const char *host, int port) {
     if (ssl == NULL)
         throw_error_info("Could not get SSL object from BIO");
 
-    const char* const PREFERRED_CIPHERS = "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4";
+    const char *const PREFERRED_CIPHERS = "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4";
     ret = SSL_set_cipher_list(ssl, PREFERRED_CIPHERS);
     if (ret != 1)
         throw_error_info("Could not set cipher list");
@@ -107,15 +112,12 @@ void cmd::tls_socket::connect(const char *host, int port) {
         throw std::runtime_error("Could not verify certificate for " + full_host);
 }
 
-void cmd::tls_socket::connect(const std::string &host, int port) {
-    connect(host.c_str(), port);
-}
+void cmd::tls_socket::connect(const std::string &host, int port) { connect(host.c_str(), port); }
 
-void cmd::tls_socket::close() {
-    SSL_shutdown(ssl);
-}
+void cmd::tls_socket::close() { SSL_shutdown(ssl); }
 
-void cmd::tls_socket::send(const char *buffer, int size, int flags) {
+void cmd::tls_socket::send(const char *buffer, int size, int flags)
+{
     int ret = 0;
     while (size > 0) {
         ret = BIO_write(connection, buffer, size);
@@ -127,15 +129,18 @@ void cmd::tls_socket::send(const char *buffer, int size, int flags) {
     }
 }
 
-void cmd::tls_socket::send(const uint8_t *buffer, int size, int flags) {
+void cmd::tls_socket::send(const uint8_t *buffer, int size, int flags)
+{
     send(buffer, size, flags);
 }
 
-void cmd::tls_socket::send(const std::string& str, int flags) {
+void cmd::tls_socket::send(const std::string &str, int flags)
+{
     send(str.c_str(), str.size(), flags);
 }
 
-int cmd::tls_socket::recv(char *buffer, int size, int flags) {
+int cmd::tls_socket::recv(char *buffer, int size, int flags)
+{
     int ret = BIO_read(connection, buffer, size);
     if (ret > 0)
         return ret;
@@ -144,10 +149,12 @@ int cmd::tls_socket::recv(char *buffer, int size, int flags) {
     return 0;
 }
 
-int cmd::tls_socket::recv(uint8_t *buffer, int size, int flags) {
-    return recv(reinterpret_cast<char*>(buffer), size, flags);
+int cmd::tls_socket::recv(uint8_t *buffer, int size, int flags)
+{
+    return recv(reinterpret_cast<char *>(buffer), size, flags);
 }
 
-int cmd::tls_socket::recv(std::vector<char>& buf, int flags) {
-    return recv(static_cast<char*>(&buf[0]), buf.size(), flags);
+int cmd::tls_socket::recv(std::vector<char> &buf, int flags)
+{
+    return recv(static_cast<char *>(&buf[0]), buf.size(), flags);
 }

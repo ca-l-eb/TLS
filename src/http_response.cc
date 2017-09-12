@@ -1,36 +1,31 @@
+#include <iostream>
 #include <regex>
 
 #include "http_response.h"
 #include "stream.h"
 
-cmd::http_response::http_response(cmd::stream &stream) :
-    status {0}
+static bool contains(const std::string &str, const std::string &c)
+{
+    return str.find(c) != str.npos;
+}
+
+cmd::http_response::http_response(cmd::stream &stream) : status{0}, length{0}, type{NONE}
 {
     read_response(stream);
 }
 
-int cmd::http_response::status_code()
+int cmd::http_response::status_code() { return status; }
+
+std::string cmd::http_response::status_message() { return status_message_str; }
+
+std::string cmd::http_response::body() { return body_str; }
+
+std::vector<std::string> cmd::http_response::headers() { return headers_list; }
+
+std::string cmd::http_response::version() { return http_version; }
+
+void cmd::http_response::read_response(cmd::stream &stream)
 {
-    return status;
-}
-
-std::string cmd::http_response::status_message()
-{
-    return status_message_str;
-}
-
-std::string cmd::http_response::body()
-{
-    return body;
-}
-
-std::vector<std::string> cmd::http_response::headers()
-{
-    return headers_list;
-}
-
-
-void cmd:http_response::read_response(cmd::stream &stream) {
     std::string line;
 
     // Read until we get empty line -- i.e. end of headers section
@@ -43,40 +38,136 @@ void cmd:http_response::read_response(cmd::stream &stream) {
     }
     process_headers();
 
-    std::cout << "\n-------------HTTP BODY------------\n" << body;
-    std::cout << "-----------------------------------\n";
-
+    if (type == CHUNKED)
+        do_chunked(stream);
+    else if (type == LENGTH)
+        do_content_length(stream);
+    else
+        do_read_all(stream);
 }
 
-void cmd::http_response::process_headers() {
-    if (headers.size() < 1)
+void cmd::http_response::process_headers()
+{
+    std::smatch matcher;
+
+    check_response_code(matcher);
+    add_headers_to_map(matcher);
+
+    check_body_method();
+}
+
+void cmd::http_response::check_response_code(std::smatch &matcher)
+{
+    if (headers_list.size() < 1)
         throw std::runtime_error("Invalid HTTP format");
 
-    auto it = headers.begin();
-    std::regex re {"^HTTP/(\\S+) (\\d{3}) (.*)$"};
-    std::smatch matcher;
-    std::regex_search(*it, matcher, re);
+    std::regex re{"^(HTTP/\\S+) (\\d{3}) (.*)$"};
+    std::regex_search(headers_list[0], matcher, re);
     if (matcher.size() > 0) {
-        std::string http_version = matcher.str(1);
+        http_version = matcher.str(1);
         status = std::stoi(matcher.str(2));
         status_message_str = matcher.str(3);
-    }
-    else
+        headers_list.erase(headers_list.begin());
+    } else
         throw std::runtime_error("Invalid HTTP response");
+}
 
-    // Process headers
-    ++it;
-    re = std::regex{"^(\\S+):\\s*(.*)$"};
-    for (; it != headers.end(); ++it) {
-        std::regex_search(*it, matcher, re); 
+void cmd::http_response::add_headers_to_map(std::smatch &matcher)
+{
+    std::regex re = std::regex{"^(\\S+):\\s*(.*)$"};
+
+    auto it = headers_list.begin();
+    ++it;  // Skip first entry
+
+    for (; it != headers_list.end(); ++it) {
+        std::regex_search(*it, matcher, re);
         if (matcher.size() > 0) {
-            std::string key = matcher.str(1);
-            std::string val = matcher.str(2);
-            response_headers[key] = val;
-            std::cout << key << "(" << val << ")\n";
+            auto pair = std::pair<std::string, std::string>(matcher.str(1), matcher.str(2));
+            headers_map.insert(pair);
+        } else {
+            // Bad header entry, remove from list
+            headers_list.erase(it);
         }
-        else {
-            std::cerr << "Bad header: " << *it << "\n";
+    }
+}
+void cmd::http_response::check_body_method()
+{
+    check_content_length();
+    // Check for Transfer-Encoding second because we always accept chunked data
+    // in favor of Content-Length when provided
+    check_transfer_encoding();
+}
+
+void cmd::http_response::check_content_length()
+{
+    auto it = headers_map.find("Content-Length");
+    auto range = headers_map.equal_range("Content-Length");
+    for (auto it = range.first; it != range.second; ++it) {
+        int len = std::stoi(it->second);
+        if (type == LENGTH && len != length) {
+            throw std::runtime_error("Got conflicting Content-Length headers");
         }
+        length = len;
+        type = LENGTH;
+    }
+}
+
+void cmd::http_response::check_transfer_encoding()
+{
+    auto range = headers_map.equal_range("Transfer-Encoding");
+    for (auto it = range.first; it != range.second; ++it) {
+        // Ignoring
+        if (contains(it->second, "chunked"))
+            type = CHUNKED;
+    }
+    if (type == CHUNKED) {
+        // TODO: check for Trailer header to add only listed trailing headers
+    }
+}
+
+void cmd::http_response::do_chunked(cmd::stream &s)
+{
+    std::string line;
+    while (true) {
+        line.clear();
+        s.next_line(line);
+        int length = std::stoi(line, NULL, 16);  // Convert hex chunk length
+        if (length == 0)
+            break;
+        int read = s.read(body_str, length);
+        if (read != length) {
+            std::cerr << "Requested " << length << " but got " << read << "\n";
+        } else
+            std::cout << "Read " << read << " bytes\n";
+        line.clear();
+        s.next_line(line);
+        if (line.length() != 0) {
+            std::cerr << "Got " << line << " instead of expected empty line\n";
+        }
+    }
+
+    // Check trailing headers
+    while (true) {
+        line.clear();
+        s.next_line(line);
+        if (line.length() == 0)  // Empty line -> DONE
+            break;
+        headers_list.push_back(line);
+        std::cout << "Trailing header: " << line << "\n";
+    }
+}
+
+void cmd::http_response::do_content_length(cmd::stream &s)
+{
+    int read = s.read(body_str, length);
+    if (read != length) {
+        std::cerr << "Read " << read << " but expected " << length << "\n";
+    }
+}
+
+void cmd::http_response::do_read_all(cmd::stream &s)
+{
+    while (s.has_more()) {
+        s.read(body_str, 32768);  // Large amount to reduce number of calls
     }
 }

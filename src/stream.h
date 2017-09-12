@@ -5,10 +5,10 @@
 
 #include "socket.h"
 
-namespace cmd {
-
-class stream {
-
+namespace cmd
+{
+class stream
+{
 public:
     stream(cmd::socket::ptr sock);
 
@@ -34,7 +34,6 @@ private:
 
     void buffer_data();
 };
-
 };
 
 #endif
