@@ -67,6 +67,8 @@ void cmd::http_response::check_response_code(std::smatch &matcher)
         http_version = matcher.str(1);
         status = std::stoi(matcher.str(2));
         status_message_str = matcher.str(3);
+
+        // Remove this from headers_list because it isn't really a header
         headers_list.erase(headers_list.begin());
     } else
         throw std::runtime_error("Invalid HTTP response");
@@ -76,10 +78,7 @@ void cmd::http_response::add_headers_to_map(std::smatch &matcher)
 {
     std::regex re = std::regex{"^(\\S+):\\s*(.*)$"};
 
-    auto it = headers_list.begin();
-    ++it;  // Skip first entry
-
-    for (; it != headers_list.end(); ++it) {
+    for (auto it = headers_list.begin(); it != headers_list.end(); ++it) {
         std::regex_search(*it, matcher, re);
         if (matcher.size() > 0) {
             auto pair = std::pair<std::string, std::string>(matcher.str(1), matcher.str(2));
@@ -135,15 +134,13 @@ void cmd::http_response::do_chunked(cmd::stream &s)
         if (length == 0)
             break;
         int read = s.read(body_str, length);
-        if (read != length) {
-            std::cerr << "Requested " << length << " but got " << read << "\n";
-        } else
-            std::cout << "Read " << read << " bytes\n";
+        if (read != length)
+            throw std::runtime_error("Got invalid chunk length");
         line.clear();
         s.next_line(line);
-        if (line.length() != 0) {
-            std::cerr << "Got " << line << " instead of expected empty line\n";
-        }
+        if (line.length() != 0)
+            throw std::runtime_error("Got invalid chunk terminator. Expected CRLF but got: " +
+                                     line);
     }
 
     // Check trailing headers
@@ -161,7 +158,9 @@ void cmd::http_response::do_content_length(cmd::stream &s)
 {
     int read = s.read(body_str, length);
     if (read != length) {
-        std::cerr << "Read " << read << " but expected " << length << "\n";
+        std::string err_msg = "Could not read entire Content-Length. Got " + std::to_string(read) +
+                              " bytes but expected " + std::to_string(length);
+        throw std::runtime_error(err_msg);
     }
 }
 
