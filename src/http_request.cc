@@ -12,7 +12,8 @@
 cmd::http_request::http_request(const std::string &url, SSL_CTX *context)
     : request_method{"GET"}, resource{"/"}, port{-1}
 {
-    std::regex re{"^(https?)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9$-_.+!*()#%&?<>]*)?$"};
+    std::regex re{
+        "^(https?)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9-._~:/?#[]@!$&'()*+,;=`]*)?$"};
     std::smatch matcher;
     std::regex_match(url, matcher, re);
 
@@ -40,12 +41,12 @@ void cmd::http_request::setup_socket(const std::string &proto, SSL_CTX *context)
         sock = std::make_shared<cmd::plain_socket>();
         if (port == -1)  // Use default port 80 if not specified
             port = 80;
-    } else if (proto == "https") {
+    } else {
+        // https otherwise
         sock = std::make_shared<cmd::tls_socket>(context);
         if (port == -1)
             port = 443;
-    } else
-        throw std::runtime_error("Unsupported protocol: " + proto);
+    }
 }
 
 void cmd::http_request::set_header(const std::string &header, const std::string &value)
@@ -80,6 +81,7 @@ void cmd::http_request::connect()
     headers.clear();           // Clear headers for next connect()
     set_header("Host", host);  // Reset Host
     resource = "/";            // Default resource
+    body = "";                 // Clear body
 }
 
 cmd::http_response cmd::http_request::response()

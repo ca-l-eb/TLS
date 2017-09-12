@@ -41,6 +41,7 @@ private:
     void do_chunked(cmd::stream &s);
     void do_content_length(cmd::stream &s);
     void do_read_all(cmd::stream &s);
+    void check_headers();
 };
 };
 

@@ -27,7 +27,7 @@ public:
 
 private:
     SSL *ssl;
-    BIO *connection;
+    cmd::plain_socket sock;
 };
 };
 

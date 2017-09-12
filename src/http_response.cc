@@ -57,6 +57,7 @@ void cmd::http_response::process_headers()
     add_headers_to_map(matcher);
 
     check_body_method();
+    check_headers();
 }
 
 void cmd::http_response::check_response_code(std::smatch &matcher)
@@ -171,5 +172,15 @@ void cmd::http_response::do_read_all(cmd::stream &s)
 {
     while (s.has_more()) {
         s.read(body_str, 32768);  // Large amount to reduce number of calls
+    }
+}
+
+void cmd::http_response::check_headers()
+{
+    auto range = headers_map.equal_range("Connection");
+    for (auto it = range.first; it != range.second; ++it) {
+        if (contains(it->second, "close")) {
+            // TODO: mark connection as closed
+        }
     }
 }
