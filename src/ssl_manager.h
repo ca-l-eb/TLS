@@ -10,12 +10,20 @@ namespace cmd
 class ssl_manager
 {
 public:
-    ssl_manager();
-    ~ssl_manager();
+    static ssl_manager &instance()
+    {
+        static ssl_manager instance;
+        return instance;
+    }
+    ssl_manager(ssl_manager const &) = delete;
+    void operator=(ssl_manager const &) = delete;
+
     SSL_CTX *get_context() const;
     cmd::socket::ptr get_socket_ptr();
 
 private:
+    ssl_manager();
+    ~ssl_manager();
     SSL_CTX *context;
     const SSL_METHOD *method;
 };

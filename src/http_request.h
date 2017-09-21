@@ -18,7 +18,7 @@ namespace cmd
 class http_request
 {
 public:
-    http_request(const std::string &url, SSL_CTX *context);
+    http_request(const std::string &url);
     void set_request_method(const std::string &method);
     void set_header(const std::string &header, const std::string &value);
     void set_body(const std::string &body);
@@ -33,7 +33,7 @@ private:
     std::unique_ptr<cmd::stream> stream;
 
     int port;
-    void setup_socket(const std::string &proto, SSL_CTX *context);
+    void setup_socket(const std::string &proto);
 };
 };
 

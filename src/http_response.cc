@@ -63,7 +63,7 @@ void cmd::http_response::process_headers()
 void cmd::http_response::check_response_code(std::smatch &matcher)
 {
     if (headers_list.size() < 1)
-        throw std::runtime_error("Invalid HTTP format");
+        throw std::runtime_error("Did not receive HTTP response");
 
     std::regex re{"^(HTTP/\\S+) (\\d{3}) (.*)$"};
     std::regex_search(headers_list[0], matcher, re);

@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <string.h>
 #include <unistd.h>
 #include <iostream>
 #include <stdexcept>
@@ -86,20 +87,12 @@ void cmd::tls_socket::send(const char *buffer, int size, int flags)
         }
         int ssl_error = SSL_get_error(ssl, ret);
         switch (ssl_error) {
-            case SSL_ERROR_NONE:
-                // No error
-                break;
             case SSL_ERROR_ZERO_RETURN:
-                // Connection closed cleanly
-                // TODO: Mark connection as closed
+                // TLS connection closed
                 break;
-            case SSL_ERROR_WANT_WRITE:
-            case SSL_ERROR_WANT_READ:
-            case SSL_ERROR_WANT_CONNECT:
-            case SSL_ERROR_WANT_ACCEPT:
-            case SSL_ERROR_WANT_X509_LOOKUP:
             case SSL_ERROR_SYSCALL:
-            case SSL_ERROR_SSL:
+                // TCP connection closed - TODO: Mark connection as closed
+                break;
             default:
                 throw_error_info("Could not write to SSL connection");
         }
@@ -124,20 +117,12 @@ int cmd::tls_socket::recv(char *buffer, int size, int flags)
 
     int ssl_error = SSL_get_error(ssl, ret);
     switch (ssl_error) {
-        case SSL_ERROR_NONE:
-            // No error
-            break;
         case SSL_ERROR_ZERO_RETURN:
-            // Connection closed cleanly
-            // TODO: Mark connection as closed
+            // TLS connection closed
             break;
-        case SSL_ERROR_WANT_READ:
-        case SSL_ERROR_WANT_WRITE:
-        case SSL_ERROR_WANT_CONNECT:
-        case SSL_ERROR_WANT_ACCEPT:
-        case SSL_ERROR_WANT_X509_LOOKUP:
         case SSL_ERROR_SYSCALL:
-        case SSL_ERROR_SSL:
+            // TCP connection closed - TODO: Mark connection as closed
+            break;
         default:
             throw_error_info("Could not write to SSL connection");
     }

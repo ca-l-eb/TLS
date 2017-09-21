@@ -6,6 +6,7 @@
 
 #include "http_request.h"
 #include "http_response.h"
+#include "json.hpp"
 #include "plain_socket.h"
 #include "socket.h"
 #include "ssl_manager.h"
@@ -20,10 +21,7 @@ int main(int argc, char *argv[])
         host = std::string(argv[1]);
     }
     try {
-        cmd::ssl_manager manager;
-        SSL_CTX *context = manager.get_context();
-
-        cmd::http_request r{host, context};
+        cmd::http_request r{host};
         r.set_request_method("GET");
         r.connect();
 
@@ -59,7 +57,7 @@ int main(int argc, char *argv[])
 
         exit(0);
 
-        cmd::socket::ptr conn = std::make_shared<cmd::tls_socket>(context);
+        cmd::socket::ptr conn = cmd::ssl_manager::instance().get_socket_ptr();
         conn->connect("irc.chat.twitch.tv", 443);
 
         std::string request;

@@ -9,11 +9,11 @@
 #include "stream.h"
 #include "tls_socket.h"
 
-cmd::http_request::http_request(const std::string &url, SSL_CTX *context)
+cmd::http_request::http_request(const std::string &url)
     : request_method{"GET"}, resource{"/"}, port{-1}
 {
     std::regex re{
-        "^(https?)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9-._~:/?#[]@!$&'()*+,;=`]*)?$"};
+        "^(https?)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9-._~:/?#\\[\\]@!$&'()*+,;=`]*)?$"};
     std::smatch matcher;
     std::regex_match(url, matcher, re);
 
@@ -32,10 +32,10 @@ cmd::http_request::http_request(const std::string &url, SSL_CTX *context)
     set_header("Host", host);
 
     // Use the protocol to create a socket
-    setup_socket(proto, context);
+    setup_socket(proto);
 }
 
-void cmd::http_request::setup_socket(const std::string &proto, SSL_CTX *context)
+void cmd::http_request::setup_socket(const std::string &proto)
 {
     if (proto == "http") {
         sock = std::make_shared<cmd::plain_socket>();
@@ -43,7 +43,7 @@ void cmd::http_request::setup_socket(const std::string &proto, SSL_CTX *context)
             port = 80;
     } else {
         // https otherwise
-        sock = std::make_shared<cmd::tls_socket>(context);
+        sock = cmd::ssl_manager::instance().get_socket_ptr();
         if (port == -1)
             port = 443;
     }
@@ -72,9 +72,12 @@ void cmd::http_request::connect()
     for (auto it = headers.begin(); it != headers.end(); ++it) {
         msg += it->first + ": " + it->second + "\r\n";
     }
-    msg += "\n\r";
-    if (body != "")
+    if (body.length() > 0) {
+        msg += "Content-Length: " + std::to_string(body.length());
+        msg += "\r\n\r\n";
         msg += body;
+    } else
+        msg += "\r\n";
 
     sock->send(msg);
 
