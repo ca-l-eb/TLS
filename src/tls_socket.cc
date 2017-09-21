@@ -1,7 +1,6 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
-#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -66,6 +65,9 @@ void cmd::tls_socket::connect(const char *host, int port)
     long verified = SSL_get_verify_result(ssl);
     if (verified != X509_V_OK)
         throw std::runtime_error("Could not verify certificate for " + full_host);
+
+    this->host = std::string(host);
+    this->port = port;
 }
 
 void cmd::tls_socket::connect(const std::string &host, int port)

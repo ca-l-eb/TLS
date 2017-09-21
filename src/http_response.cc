@@ -1,6 +1,6 @@
-#include <iostream>
 #include <regex>
 
+#include "http_pool.h"
 #include "http_response.h"
 #include "stream.h"
 
@@ -51,7 +51,7 @@ void cmd::http_response::read_response(cmd::stream &stream)
             break;
         headers_list.push_back(line);
     }
-    process_headers();
+    process_headers(stream);
 
     if (status == 204)
         return;  // No content
@@ -64,7 +64,7 @@ void cmd::http_response::read_response(cmd::stream &stream)
         do_read_all(stream);
 }
 
-void cmd::http_response::process_headers()
+void cmd::http_response::process_headers(cmd::stream &s)
 {
     std::smatch matcher;
 
@@ -72,7 +72,7 @@ void cmd::http_response::process_headers()
     add_headers_to_map(matcher);
 
     check_body_method();
-    check_headers();
+    check_headers(s);
 }
 
 void cmd::http_response::check_response_code(std::smatch &matcher)
@@ -169,7 +169,6 @@ void cmd::http_response::do_chunked(cmd::stream &s)
         if (line.length() == 0)  // Empty line -> DONE
             break;
         headers_list.push_back(line);
-        std::cout << "Trailing header: " << line << "\n";
     }
 }
 
@@ -186,16 +185,19 @@ void cmd::http_response::do_content_length(cmd::stream &s)
 void cmd::http_response::do_read_all(cmd::stream &s)
 {
     while (s.has_more()) {
-        s.read(body_str, 32768);  // Large amount to reduce number of calls
+        s.read(body_str, 256 * 1024);  // Large amount to reduce number of calls
     }
 }
 
-void cmd::http_response::check_headers()
+void cmd::http_response::check_headers(cmd::stream &s)
 {
     auto range = headers_map.equal_range("Connection");
     for (auto it = range.first; it != range.second; ++it) {
         if (contains(it->second, "close")) {
-            // TODO: mark connection as closed
+            cmd::socket *sock = s.get_sock();
+            std::string host = sock->get_host();
+            int port = sock->get_port();
+            cmd::http_pool::mark_closed(host, port);
         }
     }
 }

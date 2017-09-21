@@ -32,7 +32,7 @@ private:
     int length;
 
     void read_response(cmd::stream &s);
-    void process_headers();
+    void process_headers(cmd::stream &s);
     void check_response_code(std::smatch &matcher);
     void add_headers_to_map(std::smatch &matcher);
     void check_body_method();
@@ -41,7 +41,7 @@ private:
     void do_chunked(cmd::stream &s);
     void do_content_length(cmd::stream &s);
     void do_read_all(cmd::stream &s);
-    void check_headers();
+    void check_headers(cmd::stream &s);
 };
 };
 

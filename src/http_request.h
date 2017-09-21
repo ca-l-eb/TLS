@@ -32,8 +32,7 @@ private:
     std::map<std::string, std::string> headers;
     std::unique_ptr<cmd::stream> stream;
 
-    int port;
-    void setup_socket(const std::string &proto);
+    int port, retries;
 };
 };
 

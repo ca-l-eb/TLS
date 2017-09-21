@@ -3,32 +3,18 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cstring>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "plain_socket.h"
 
-static void connect_host(const std::string &host, int port, struct sockaddr_in *sin)
-{
-    struct hostent *hp = gethostbyname(host.c_str());
-    if (!hp)
-        throw std::runtime_error("Could not find host " + host);
-    memset(sin, 0, sizeof(struct sockaddr_in));
-    sin->sin_family = AF_INET;
-    memcpy((char *) &sin->sin_addr, hp->h_addr, hp->h_length);
-    sin->sin_port = htons(port);
-}
-
-cmd::plain_socket::plain_socket() : sock_fd{0}
-{
-    if ((sock_fd = ::socket(PF_INET, SOCK_STREAM, 0)) < 0)
-        throw std::runtime_error(strerror(errno));
-}
+cmd::plain_socket::plain_socket() : sock_fd{0} {}
 
 cmd::plain_socket::~plain_socket()
 {
@@ -37,9 +23,9 @@ cmd::plain_socket::~plain_socket()
 
 void cmd::plain_socket::connect(const char *host, int port)
 {
-    connect_host(host, port, &sin);
-    if (::connect(sock_fd, (struct sockaddr *) &sin, sizeof(sin)) < 0)
-        throw std::runtime_error(strerror(errno));
+    connect_host(host, port);
+    this->host = std::string(host);
+    this->port = port;
 }
 
 void cmd::plain_socket::connect(const std::string &host, int port)
@@ -86,4 +72,37 @@ int cmd::plain_socket::recv(std::vector<char> &buf, int flags)
 int cmd::plain_socket::get_fd()
 {
     return sock_fd;
+}
+
+void cmd::plain_socket::connect_host(const std::string &host, int port)
+{
+    struct addrinfo *addr;
+    struct addrinfo hints;
+    std::memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;      // Use IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM;  // Request reliable, duplex connection (probably TCP)
+
+    int ret = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr);
+    if (ret != 0) {
+        throw std::runtime_error("Error getaddrinfo: " + std::string(gai_strerror(ret)));
+    }
+
+    // Loop through connections trying each
+    auto i = addr;
+    for (; i != NULL; i = i->ai_next) {
+        // Create an unbound socket for the connection
+        sock_fd = ::socket(i->ai_family, i->ai_socktype, i->ai_protocol);
+        if (sock_fd == -1)
+            continue;
+
+        if (::connect(sock_fd, i->ai_addr, i->ai_addrlen) != -1)
+            break;  // Success!
+
+        ::close(sock_fd);  // close, try next
+    }
+
+    freeaddrinfo(addr);
+
+    if (i == NULL)
+        throw std::runtime_error(strerror(errno));  // Could not connect
 }

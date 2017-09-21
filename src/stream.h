@@ -24,6 +24,10 @@ public:
     std::string read(int amount);
 
     bool has_more();
+    cmd::socket *get_sock()
+    {
+        return sock.get();
+    }
 
 private:
     cmd::socket::ptr sock;

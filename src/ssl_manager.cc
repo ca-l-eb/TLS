@@ -56,8 +56,8 @@ cmd::ssl_manager::ssl_manager()
 
 cmd::ssl_manager::~ssl_manager()
 {
-    SSL_CTX_free(context);
     ERR_free_strings();
+    SSL_CTX_free(context);
 }
 
 SSL_CTX *cmd::ssl_manager::get_context() const

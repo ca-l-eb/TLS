@@ -1,16 +1,16 @@
-#include <iostream>
 #include <regex>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
+#include "http_pool.h"
 #include "http_request.h"
 #include "plain_socket.h"
 #include "stream.h"
 #include "tls_socket.h"
 
 cmd::http_request::http_request(const std::string &url)
-    : request_method{"GET"}, resource{"/"}, port{-1}
+    : request_method{"GET"}, resource{"/"}, port{-1}, retries{0}
 {
     std::regex re{
         "^(https?)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9-._~:/?#\\[\\]@!$&'()*+,;=`]*)?$"};
@@ -21,8 +21,11 @@ cmd::http_request::http_request(const std::string &url)
     if (matcher.size() > 0) {
         proto = matcher.str(1);
         host = matcher.str(2);
-        if (matcher.str(3) != "")
+        if (matcher.str(3) != "") {
             port = std::stoi(matcher.str(3));
+        } else {
+            port = (proto == "http" ? 80 : 443);
+        }
         if (matcher.str(4) != "")
             resource = matcher.str(4);
     } else
@@ -30,23 +33,6 @@ cmd::http_request::http_request(const std::string &url)
 
     // Set Host header because many servers require it
     set_header("Host", host);
-
-    // Use the protocol to create a socket
-    setup_socket(proto);
-}
-
-void cmd::http_request::setup_socket(const std::string &proto)
-{
-    if (proto == "http") {
-        sock = std::make_shared<cmd::plain_socket>();
-        if (port == -1)  // Use default port 80 if not specified
-            port = 80;
-    } else {
-        // https otherwise
-        sock = cmd::ssl_manager::instance().get_socket_ptr();
-        if (port == -1)
-            port = 443;
-    }
 }
 
 void cmd::http_request::set_header(const std::string &header, const std::string &value)
@@ -66,28 +52,35 @@ void cmd::http_request::set_request_method(const std::string &request)
 
 void cmd::http_request::connect()
 {
-    static bool init = false;
-    if (!init)
-        sock->connect(host, port);
-    init = true;
-    std::string msg;
-    msg += request_method + " " + resource + " HTTP/1.1\r\n";
-    for (auto it = headers.begin(); it != headers.end(); ++it) {
-        msg += it->first + ": " + it->second + "\r\n";
+    try {
+        sock = cmd::http_pool::get_connection(host, port, port == 443);
+        std::string msg;
+        msg += request_method + " " + resource + " HTTP/1.1\r\n";
+        for (auto it = headers.begin(); it != headers.end(); ++it) {
+            msg += it->first + ": " + it->second + "\r\n";
+        }
+        if (body.length() > 0) {
+            msg += "Content-Length: " + std::to_string(body.length());
+            msg += "\r\n\r\n";
+            msg += body;
+        } else {
+            msg += "\r\n";
+        }
+        sock->send(msg);
+        headers.clear();           // Clear headers for next connect()
+        set_header("Host", host);  // Reset Host
+        resource = "/";            // Default resource
+        body = "";                 // Clear body
+        retries = 0;               // Success, reset retries
+    } catch (std::exception &e) {
+        cmd::http_pool::mark_closed(host, port);
+        retries++;
+        if (retries == 2)
+            throw;  // Give up after 2 failed attempts
+
+        // Connect again; connection might have been auto closed for being open too long without use
+        connect();
     }
-    if (body.length() > 0) {
-        msg += "Content-Length: " + std::to_string(body.length());
-        msg += "\r\n\r\n";
-        msg += body;
-    } else
-        msg += "\r\n";
-
-    sock->send(msg);
-
-    headers.clear();           // Clear headers for next connect()
-    set_header("Host", host);  // Reset Host
-    resource = "/";            // Default resource
-    body = "";                 // Clear body
 }
 
 cmd::http_response cmd::http_request::response()

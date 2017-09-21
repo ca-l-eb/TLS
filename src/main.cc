@@ -6,7 +6,6 @@
 
 #include "http_request.h"
 #include "http_response.h"
-#include "json.hpp"
 #include "plain_socket.h"
 #include "socket.h"
 #include "ssl_manager.h"
@@ -24,12 +23,11 @@ int main(int argc, char *argv[])
         cmd::http_request r{host};
         r.set_request_method("GET");
         r.connect();
+        cmd::http_response response = r.response();
 
+        r = cmd::http_request{host};
         r.set_resource("/fail.html");
         r.connect();
-        sleep(1);
-
-        cmd::http_response response = r.response();
 
         std::cout << "Status: " << response.status_code() << "\n";
         std::cout << "-------------------------HEADERS-------------------------\n";

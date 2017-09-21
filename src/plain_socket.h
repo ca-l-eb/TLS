@@ -28,8 +28,8 @@ public:
     int get_fd();
 
 private:
+    void connect_host(const std::string &host, int port);
     int sock_fd;
-    struct sockaddr_in sin;
 };
 };
 
