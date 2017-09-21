@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 11)
 project(ssl)
 
 set(SOURCE_FILES
-    src/main.cc
     src/socket.h
     src/plain_socket.cc
     src/plain_socket.h
@@ -24,6 +23,9 @@ set(SOURCE_FILES
     src/stream.h
     )
 
-add_executable(main ${SOURCE_FILES})
+set(MAIN src/main.cc)
 
-target_link_libraries(main ssl crypto)
+add_library(mysocket SHARED ${SOURCE_FILES})
+add_executable(main ${MAIN})
+
+target_link_libraries(main ssl crypto mysocket)

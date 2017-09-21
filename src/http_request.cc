@@ -54,7 +54,10 @@ void cmd::http_request::set_header(const std::string &header, const std::string 
     headers[header] = value;
 }
 
-void cmd::http_request::set_body(const std::string &body) { this->body = body; }
+void cmd::http_request::set_body(const std::string &body)
+{
+    this->body = body;
+}
 
 void cmd::http_request::set_request_method(const std::string &request)
 {
@@ -96,4 +99,7 @@ cmd::http_response cmd::http_request::response()
     return response;
 }
 
-void cmd::http_request::set_resource(const std::string &resource) { this->resource = resource; }
+void cmd::http_request::set_resource(const std::string &resource)
+{
+    this->resource = resource;
+}

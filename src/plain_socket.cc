@@ -30,7 +30,10 @@ cmd::plain_socket::plain_socket() : sock_fd{0}
         throw std::runtime_error(strerror(errno));
 }
 
-cmd::plain_socket::~plain_socket() { close(); }
+cmd::plain_socket::~plain_socket()
+{
+    close();
+}
 
 void cmd::plain_socket::connect(const char *host, int port)
 {
@@ -39,7 +42,10 @@ void cmd::plain_socket::connect(const char *host, int port)
         throw std::runtime_error(strerror(errno));
 }
 
-void cmd::plain_socket::connect(const std::string &host, int port) { connect(host.c_str(), port); }
+void cmd::plain_socket::connect(const std::string &host, int port)
+{
+    connect(host.c_str(), port);
+}
 
 void cmd::plain_socket::close()
 {
@@ -77,4 +83,7 @@ int cmd::plain_socket::recv(std::vector<char> &buf, int flags)
     return ::recv(sock_fd, &buf[0], buf.capacity(), flags);
 }
 
-int cmd::plain_socket::get_fd() { return sock_fd; }
+int cmd::plain_socket::get_fd()
+{
+    return sock_fd;
+}

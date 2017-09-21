@@ -68,7 +68,10 @@ void cmd::tls_socket::connect(const char *host, int port)
         throw std::runtime_error("Could not verify certificate for " + full_host);
 }
 
-void cmd::tls_socket::connect(const std::string &host, int port) { connect(host.c_str(), port); }
+void cmd::tls_socket::connect(const std::string &host, int port)
+{
+    connect(host.c_str(), port);
+}
 
 void cmd::tls_socket::close()
 {

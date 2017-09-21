@@ -60,7 +60,10 @@ cmd::ssl_manager::~ssl_manager()
     ERR_free_strings();
 }
 
-SSL_CTX *cmd::ssl_manager::get_context() const { return context; }
+SSL_CTX *cmd::ssl_manager::get_context() const
+{
+    return context;
+}
 
 cmd::socket::ptr cmd::ssl_manager::get_socket_ptr()
 {

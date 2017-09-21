@@ -14,15 +14,30 @@ cmd::http_response::http_response(cmd::stream &stream) : status{0}, length{0}, t
     read_response(stream);
 }
 
-int cmd::http_response::status_code() { return status; }
+int cmd::http_response::status_code()
+{
+    return status;
+}
 
-std::string cmd::http_response::status_message() { return status_message_str; }
+std::string cmd::http_response::status_message()
+{
+    return status_message_str;
+}
 
-std::string cmd::http_response::body() { return body_str; }
+std::string cmd::http_response::body()
+{
+    return body_str;
+}
 
-std::vector<std::string> cmd::http_response::headers() { return headers_list; }
+std::vector<std::string> cmd::http_response::headers()
+{
+    return headers_list;
+}
 
-std::string cmd::http_response::version() { return http_version; }
+std::string cmd::http_response::version()
+{
+    return http_version;
+}
 
 void cmd::http_response::read_response(cmd::stream &stream)
 {
