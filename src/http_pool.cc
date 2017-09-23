@@ -1,8 +1,8 @@
 #include <memory>
 
 #include "http_pool.h"
-#include "plain_socket.h"
 #include "ssl_manager.h"
+#include "tcp_socket.h"
 
 cmd::socket::ptr cmd::http_pool::get_connection(const std::string &host, int port, bool is_ssl)
 {
@@ -15,9 +15,9 @@ cmd::socket::ptr cmd::http_pool::get_connection(const std::string &host, int por
 
     cmd::socket::ptr sock;
     if (is_ssl) {
-        sock = cmd::ssl_manager::instance().get_socket_ptr();
+        sock = cmd::ssl_manager::get_socket_ptr();
     } else {
-        sock = std::make_shared<cmd::plain_socket>();
+        sock = std::make_shared<cmd::tcp_socket>();
     }
     m[full_host] = sock;
     sock->connect(host, port);

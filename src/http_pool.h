@@ -14,9 +14,6 @@ public:
     static cmd::socket::ptr get_connection(const std::string &host, int port, bool is_ssl);
     static void mark_closed(const std::string &host, int port);
 
-    http_pool(http_pool const &) = delete;
-    void operator=(http_pool const &) = delete;
-
 private:
     http_pool() {}
     static http_pool &instance()
