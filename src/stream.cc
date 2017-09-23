@@ -20,11 +20,11 @@ int cmd::stream::next_line(std::string &line)
     // has_more buffers data and resets buf_ptr and remaining_in_buffer
     while (has_more()) {
         char *next = tokenizer.get_line(buf_ptr, remaining_in_buffer, line, token);
+        remaining_in_buffer -= next - buf_ptr;
+        buf_ptr = next;
         if (token == cmd::line_token::WANT_MORE)
             continue;
 
-        remaining_in_buffer -= next - buf_ptr;
-        buf_ptr = next;
         break;
     }
     return line.size() - start;
@@ -63,10 +63,13 @@ int cmd::stream::read(char *buf, int amount)
             std::memcpy(buf, buf_ptr, amount);
             remaining_in_buffer -= amount;
             buf_ptr += amount;
+            read += amount;
+            ;
             break;
         } else {
             std::memcpy(buf, buf_ptr, remaining_in_buffer);
             amount -= remaining_in_buffer;
+            read += remaining_in_buffer;
             remaining_in_buffer = 0;
         }
     }

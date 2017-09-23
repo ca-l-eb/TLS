@@ -5,8 +5,8 @@
 
 #include "http_pool.h"
 #include "http_request.h"
-#include "plain_socket.h"
 #include "stream.h"
+#include "tcp_socket.h"
 #include "tls_socket.h"
 
 cmd::http_request::http_request(const std::string &url)

@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -25,6 +26,13 @@ cmd::tls_socket::tls_socket(SSL_CTX *context)
         throw_error_info("Could not create SSL connection object from SSL context");
 }
 
+cmd::tls_socket::tls_socket(int fd, SSL *ssl) : sock{fd}, ssl{ssl}
+{
+    // This constructor is intended to be called from tls_server::accept
+    // fd should already be a connected socket, and ssl should be
+    // an SSL instance already using fd, handshake complete
+}
+
 cmd::tls_socket::~tls_socket()
 {
     close();
@@ -33,8 +41,6 @@ cmd::tls_socket::~tls_socket()
 
 void cmd::tls_socket::connect(const char *host, int port)
 {
-    std::string full_host = std::string(host) + ":" + std::to_string(port);
-
     const char *const PREFERRED_CIPHERS = "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4";
     long ret = SSL_set_cipher_list(ssl, PREFERRED_CIPHERS);
     if (ret != 1)
@@ -47,7 +53,7 @@ void cmd::tls_socket::connect(const char *host, int port)
     sock.connect(host, port);
     int sock_fd = sock.get_fd();
 
-    // Use underlying plain_socket TCP connection for SSL calls
+    // Use underlying tcp_socket TCP connection for SSL calls
     ret = SSL_set_fd(ssl, sock_fd);
     if (ret != 1)
         throw_error_info("SSL could not use socket fd");
@@ -59,12 +65,12 @@ void cmd::tls_socket::connect(const char *host, int port)
 
     X509 *cert = SSL_get_peer_certificate(ssl);
     if (cert == NULL)
-        throw_error_info("Could not retrieved certificate from " + full_host);
+        throw_error_info("Could not retrieved certificate from " + std::string(host));
     X509_free(cert);
 
     long verified = SSL_get_verify_result(ssl);
     if (verified != X509_V_OK)
-        throw std::runtime_error("Could not verify certificate for " + full_host);
+        throw std::runtime_error("Could not verify certificate for " + std::string(host));
 
     this->host = std::string(host);
     this->port = port;
@@ -79,39 +85,38 @@ void cmd::tls_socket::close()
 {
     SSL_shutdown(ssl);
     SSL_clear(ssl);
+    sock.close();
 }
 
-void cmd::tls_socket::send(const char *buffer, int size, int flags)
+int cmd::tls_socket::send(const char *buffer, int size, int flags)
 {
-    int ret = 0;
+    int wrote = 0;
     while (size > 0) {
-        ret = SSL_write(ssl, buffer, size);
+        int ret = SSL_write(ssl, buffer, size);
         if (ret > 0) {
             size -= ret;
+            wrote += ret;
             continue;
         }
         int ssl_error = SSL_get_error(ssl, ret);
         switch (ssl_error) {
             case SSL_ERROR_ZERO_RETURN:
                 // TLS connection closed
-                break;
             case SSL_ERROR_SYSCALL:
-                // TCP connection closed - TODO: Mark connection as closed
+                // TCP connection closed
                 break;
             default:
                 throw_error_info("Could not write to SSL connection");
         }
     }
+    if (wrote > 0)
+        return wrote;
+    return -1;
 }
 
-void cmd::tls_socket::send(const uint8_t *buffer, int size, int flags)
+int cmd::tls_socket::send(const std::string &str, int flags)
 {
-    send(buffer, size, flags);
-}
-
-void cmd::tls_socket::send(const std::string &str, int flags)
-{
-    send(str.c_str(), str.size(), flags);
+    return send(str.c_str(), str.size(), flags);
 }
 
 int cmd::tls_socket::recv(char *buffer, int size, int flags)
@@ -124,19 +129,13 @@ int cmd::tls_socket::recv(char *buffer, int size, int flags)
     switch (ssl_error) {
         case SSL_ERROR_ZERO_RETURN:
             // TLS connection closed
-            break;
         case SSL_ERROR_SYSCALL:
-            // TCP connection closed - TODO: Mark connection as closed
+            // TCP connection closed
             break;
         default:
             throw_error_info("Could not write to SSL connection");
     }
-    return 0;
-}
-
-int cmd::tls_socket::recv(uint8_t *buffer, int size, int flags)
-{
-    return recv(reinterpret_cast<char *>(buffer), size, flags);
+    return ret;
 }
 
 int cmd::tls_socket::recv(std::vector<char> &buf, int flags)
