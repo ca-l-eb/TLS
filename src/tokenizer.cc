@@ -1,11 +1,9 @@
-#include <unistd.h>
 #include <string>
 
 #include "tokenizer.h"
 
-cmd::tokenizer::tokenizer() {}
-
-char *cmd::tokenizer::get_line(char *buffer, int size, std::string &write_to, line_token &tok)
+char *cmd::tokenizer::get_line(char *buffer, int size, std::string &write_to,
+                               cmd::tokenizer::token &tok)
 {
     for (int i = 0; i < size; i++) {
         char c = *buffer++;

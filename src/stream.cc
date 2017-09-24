@@ -15,14 +15,13 @@ std::string cmd::stream::next_line()
 int cmd::stream::next_line(std::string &line)
 {
     int start = line.size();
-    cmd::line_token token;
-    cmd::tokenizer tokenizer;
+    cmd::tokenizer::token tok;
     // has_more buffers data and resets buf_ptr and remaining_in_buffer
     while (has_more()) {
-        char *next = tokenizer.get_line(buf_ptr, remaining_in_buffer, line, token);
+        char *next = cmd::tokenizer::get_line(buf_ptr, remaining_in_buffer, line, tok);
         remaining_in_buffer -= next - buf_ptr;
         buf_ptr = next;
-        if (token == cmd::line_token::WANT_MORE)
+        if (tok == cmd::tokenizer::token::WANT_MORE)
             continue;
 
         break;
@@ -64,7 +63,6 @@ int cmd::stream::read(char *buf, int amount)
             remaining_in_buffer -= amount;
             buf_ptr += amount;
             read += amount;
-            ;
             break;
         } else {
             std::memcpy(buf, buf_ptr, remaining_in_buffer);
