@@ -26,10 +26,9 @@ private:
     std::string http_version;
     std::vector<std::string> headers_list;
     std::multimap<std::string, std::string> headers_map;
-
+    int length;
     enum body_type { NONE, CHUNKED, LENGTH };
     enum body_type type;
-    int length;
 
     void read_response(cmd::stream &s);
     void process_headers(cmd::stream &s);

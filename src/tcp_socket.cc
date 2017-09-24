@@ -37,8 +37,8 @@ void cmd::tcp_socket::connect(const std::string &host, int port)
 
 void cmd::tcp_socket::close()
 {
-    if (sock_fd >= 0 && ::close(sock_fd) == -1)
-        throw std::runtime_error(strerror(errno));
+    if (sock_fd >= 0)
+        ::close(sock_fd); // Ignore any errors
     sock_fd = -1;
 }
 

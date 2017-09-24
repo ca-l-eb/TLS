@@ -118,7 +118,6 @@ void cmd::http_response::check_body_method()
 
 void cmd::http_response::check_content_length()
 {
-    auto it = headers_map.find("Content-Length");
     auto range = headers_map.equal_range("Content-Length");
     for (auto it = range.first; it != range.second; ++it) {
         int len = std::stoi(it->second);
@@ -149,7 +148,7 @@ void cmd::http_response::do_chunked(cmd::stream &s)
     while (true) {
         line.clear();
         s.next_line(line);
-        int length = std::stoi(line, NULL, 16);  // Convert hex chunk length
+        length = std::stoi(line, NULL, 16);  // Convert hex chunk length
         if (length == 0)
             break;
         int read = s.read(body_str, length);

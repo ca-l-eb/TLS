@@ -19,9 +19,9 @@ static void throw_error_info(const std::string &msg)
     }
 }
 
-cmd::tls_socket::tls_socket(SSL_CTX *context)
+cmd::tls_socket::tls_socket()
 {
-    ssl = SSL_new(context);
+    ssl = SSL_new(cmd::ssl_manager::get_context());
     if (ssl == NULL)
         throw_error_info("Could not create SSL connection object from SSL context");
 }
@@ -141,4 +141,9 @@ int cmd::tls_socket::recv(char *buffer, int size, int flags)
 int cmd::tls_socket::recv(std::vector<char> &buf, int flags)
 {
     return recv(static_cast<char *>(&buf[0]), buf.size(), flags);
+}
+
+int cmd::tls_socket::get_fd()
+{
+    return sock.get_fd();
 }

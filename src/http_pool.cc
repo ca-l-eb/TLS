@@ -3,6 +3,7 @@
 #include "http_pool.h"
 #include "ssl_manager.h"
 #include "tcp_socket.h"
+#include "tls_socket.h"
 
 cmd::socket::ptr cmd::http_pool::get_connection(const std::string &host, int port, bool is_ssl)
 {
@@ -15,7 +16,7 @@ cmd::socket::ptr cmd::http_pool::get_connection(const std::string &host, int por
 
     cmd::socket::ptr sock;
     if (is_ssl) {
-        sock = cmd::ssl_manager::get_socket_ptr();
+        sock = std::make_shared<cmd::tls_socket>();
     } else {
         sock = std::make_shared<cmd::tcp_socket>();
     }

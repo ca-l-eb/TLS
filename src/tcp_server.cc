@@ -44,6 +44,7 @@ void cmd::tcp_server::close()
 {
     if (sock_fd > 0)
         ::close(sock_fd);
+    sock_fd = -1;
 }
 
 void cmd::tcp_server::listen(int waiting)

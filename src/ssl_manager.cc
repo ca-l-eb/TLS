@@ -58,8 +58,8 @@ SSL_CTX *cmd::ssl_manager::get_context()
 
 SSL_CTX *cmd::ssl_manager::get_server_context()
 {
-    // Do nothing with c, but make sure global OpenSSL state is loaded
-    SSL_CTX *c = get_context();
+    // Make sure global OpenSSL state is loaded
+    instance();
 
     const SSL_METHOD *method;
     method = TLS_server_method();
@@ -72,9 +72,4 @@ SSL_CTX *cmd::ssl_manager::get_server_context()
 
     SSL_CTX_set_options(context, flags);
     return context;
-}
-
-cmd::socket::ptr cmd::ssl_manager::get_socket_ptr()
-{
-    return std::make_shared<cmd::tls_socket>(get_context());
 }

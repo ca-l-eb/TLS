@@ -27,11 +27,13 @@ cmd::tls_server::tls_server(const char *cert, const char *privkey) : context{nul
     /* Set the key and cert */
     if (SSL_CTX_use_certificate_file(context, cert, SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
+        SSL_CTX_free(context);
         throw std::runtime_error("Error using certificate: " + std::string(cert));
     }
 
     if (SSL_CTX_use_PrivateKey_file(context, privkey, SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
+        SSL_CTX_free(context);
         throw std::runtime_error("Error using private key: " + std::string(privkey));
     }
 }
@@ -72,8 +74,8 @@ void cmd::tls_server::bind(int port)
 
 void cmd::tls_server::close()
 {
-    if (sock_fd >= 0 && ::close(sock_fd) == -1)
-        throw std::runtime_error(strerror(errno));
+    if (sock_fd >= 0)
+        ::close(sock_fd);
     sock_fd = -1;
 }
 
