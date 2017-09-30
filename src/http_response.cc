@@ -66,22 +66,22 @@ void cmd::http_response::read_response(cmd::stream &stream)
 
 void cmd::http_response::process_headers(cmd::stream &s)
 {
-    std::smatch matcher;
-
-    check_response_code(matcher);
-    add_headers_to_map(matcher);
+    check_response_code();
+    add_headers_to_map();
 
     check_body_method();
     check_headers(s);
 }
 
-void cmd::http_response::check_response_code(std::smatch &matcher)
+static std::regex response_re{"^(HTTP/\\S+) (\\d{3}) (.*)$"};
+
+void cmd::http_response::check_response_code()
 {
     if (headers_list.size() < 1)
         throw std::runtime_error("Did not receive HTTP response");
 
-    std::regex re{"^(HTTP/\\S+) (\\d{3}) (.*)$"};
-    std::regex_search(headers_list[0], matcher, re);
+    std::smatch matcher;
+    std::regex_search(headers_list[0], matcher, response_re);
     if (matcher.size() > 0) {
         http_version = matcher.str(1);
         status = std::stoi(matcher.str(2));
@@ -93,9 +93,10 @@ void cmd::http_response::check_response_code(std::smatch &matcher)
         throw std::runtime_error("Invalid HTTP response");
 }
 
-void cmd::http_response::add_headers_to_map(std::smatch &matcher)
+void cmd::http_response::add_headers_to_map()
 {
     std::regex re = std::regex{"^(\\S+):\\s*(.*)$"};
+    std::smatch matcher;
 
     for (auto it = headers_list.begin(); it != headers_list.end(); ++it) {
         std::regex_search(*it, matcher, re);

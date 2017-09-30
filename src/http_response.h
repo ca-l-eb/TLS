@@ -32,8 +32,8 @@ private:
 
     void read_response(cmd::stream &s);
     void process_headers(cmd::stream &s);
-    void check_response_code(std::smatch &matcher);
-    void add_headers_to_map(std::smatch &matcher);
+    void check_response_code();
+    void add_headers_to_map();
     void check_body_method();
     void check_content_length();
     void check_transfer_encoding();

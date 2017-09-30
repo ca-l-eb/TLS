@@ -9,13 +9,14 @@
 #include "tcp_socket.h"
 #include "tls_socket.h"
 
+static std::regex url_re{
+    "^(https?)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9-._~:/?#\\[\\]@!$&'()*+,;=`]*)?$"};
+
 cmd::http_request::http_request(const std::string &url)
     : request_method{"GET"}, resource{"/"}, port{-1}, retries{0}
 {
-    std::regex re{
-        "^(https?)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9-._~:/?#\\[\\]@!$&'()*+,;=`]*)?$"};
     std::smatch matcher;
-    std::regex_match(url, matcher, re);
+    std::regex_match(url, matcher, url_re);
 
     std::string proto;
     if (matcher.size() > 0) {

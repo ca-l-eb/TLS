@@ -109,9 +109,7 @@ int cmd::tls_socket::send(const char *buffer, int size, int flags)
                 throw_error_info("Could not write to SSL connection");
         }
     }
-    if (wrote > 0)
-        return wrote;
-    return -1;
+    return wrote;
 }
 
 int cmd::tls_socket::send(const std::string &str, int flags)
