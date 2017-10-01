@@ -4,6 +4,9 @@ set(CMAKE_CXX_STANDARD 11)
 
 project(cmdsock)
 
+add_subdirectory(test)
+add_subdirectory(examples)
+
 link_directories(/usr/local/lib)
 find_package(OpenSSL REQUIRED)
 
@@ -19,6 +22,7 @@ set(SOURCE_FILES
     src/tls_server.cc
     src/tls_socket.cc
     src/tokenizer.cc
+    src/websocket.cc
     )
 
 set(HEADER_FILES
@@ -35,25 +39,10 @@ set(HEADER_FILES
     src/tls_socket.h
     src/tcp_server.h
     src/tokenizer.h
+    src/websocket.h
     )
 
 
 add_library(cmdsock SHARED ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(cmdsock PUBLIC ${OPENSSL_INCLUDE_DIR} src)
 target_link_libraries(cmdsock ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
-
-# -------------EXAMPLES---------------
-add_executable(http_request examples/request.cc)
-target_include_directories(http_request PUBLIC src)
-
-add_executable(echo_server examples/echo_server.cc)
-target_include_directories(echo_server PUBLIC src)
-
-add_executable(base64 examples/base64.cc)
-target_include_directories(base64 PUBLIC src)
-
-target_link_libraries(http_request cmdsock)
-target_link_libraries(echo_server cmdsock pthread)
-target_link_libraries(base64 cmdsock)
-
-# -------------EXAMPLES---------------
