@@ -16,4 +16,3 @@ target_link_libraries(http_request cmdsock)
 target_link_libraries(echo_server cmdsock pthread)
 target_link_libraries(base64 cmdsock)
 target_link_libraries(websocket cmdsock)
-

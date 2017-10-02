@@ -4,7 +4,8 @@
 
 #include "base64.h"
 
-static const unsigned char b64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const unsigned char b64_table[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 // clang-format off
 static const unsigned char inv_table[256] = {
@@ -53,8 +54,7 @@ std::string cmd::base64::encode(const char *message, size_t size)
         if (remaining == 2) {
             encoded[loc++] = b64_table[((message[0] & 0x03) << 4) | ((message[1] & 0xF0) >> 4)];
             encoded[loc++] = b64_table[(message[1] & 0x0F) << 2];
-        }
-        else {
+        } else {
             encoded[loc++] = b64_table[(message[0] & 0x03) << 4];
             encoded[loc++] = '=';
         }

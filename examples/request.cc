@@ -27,8 +27,8 @@ int main(int argc, char *argv[])
 
         std::cout << "Status: " << response.status_code() << "\n";
         std::cout << "-------------------------HEADERS-------------------------\n";
-        for (std::string &s : response.headers()) {
-            std::cout << s << "\n";
+        for (auto &s : response.headers()) {
+            std::cout << s.first << ": " << s.second << "\n";
         }
         std::cout << "---------------------------------------------------------\n";
 

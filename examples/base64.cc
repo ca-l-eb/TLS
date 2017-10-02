@@ -28,7 +28,6 @@ int main(int argc, char *argv[])
         std::string decoded_str{decoded.begin(), decoded.end()};
         auto t8 = high_resolution_clock::now();
 
-
         std::cout << encoded11 << "\n";
         std::cout << std::setw(10) << "strlen:" << std::setw(10)
                   << duration_cast<nanoseconds>(t2 - t1).count() << "ns\n";
@@ -47,22 +46,10 @@ int main(int argc, char *argv[])
         std::cout << std::setfill(' ') << std::setw(0);
     }
 
-    int len = 0;
-    int read = 0;
-    std::vector<int> read_len;
     while (std::cin.good()) {
-        char buf[60];
+        char buf[6000];
         std::cin.read(buf, sizeof(buf));
-        int good = std::cin.gcount();
-        auto s = cmd::base64::encode(buf, good);
-        std::cout << s;
-        len += s.size();
-        read += good;
-        read_len.push_back(good);
+        std::cout << cmd::base64::encode(buf, std::cin.gcount());
     }
-    std::cout << "\n";
-
-    for (auto i : read_len)
-        std::cout << i << " ";
     std::cout << "\n";
 }

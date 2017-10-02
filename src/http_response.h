@@ -17,7 +17,7 @@ public:
     int status_code();
     std::string status_message();
     std::string body();
-    std::vector<std::string> headers();
+    std::multimap<std::string, std::string> &headers();
     std::string version();
 
 private:

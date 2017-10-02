@@ -19,7 +19,7 @@ public:
     int next_line(std::string &line);
 
     // Read amount bytes into the buffer, return amount bytes actually written
-    int read(char *buf, int amount);
+    int read(void *buf, int amount);
     int read(std::string &s, int amount);
     std::string read(int amount);
 

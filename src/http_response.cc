@@ -29,9 +29,9 @@ std::string cmd::http_response::body()
     return body_str;
 }
 
-std::vector<std::string> cmd::http_response::headers()
+std::multimap<std::string, std::string> &cmd::http_response::headers()
 {
-    return headers_list;
+    return headers_map;
 }
 
 std::string cmd::http_response::version()
@@ -53,7 +53,7 @@ void cmd::http_response::read_response(cmd::stream &stream)
     }
     process_headers(stream);
 
-    if (status == 204)
+    if (status == 204 || type == NONE)
         return;  // No content
 
     if (type == CHUNKED)
@@ -73,15 +73,14 @@ void cmd::http_response::process_headers(cmd::stream &s)
     check_headers(s);
 }
 
-static std::regex response_re{"^(HTTP/\\S+) (\\d{3}) (.*)$"};
-
 void cmd::http_response::check_response_code()
 {
+    static std::regex re{"^(HTTP/\\S+) (\\d{3}) (.*)$"};
     if (headers_list.size() < 1)
         throw std::runtime_error("Did not receive HTTP response");
 
     std::smatch matcher;
-    std::regex_search(headers_list[0], matcher, response_re);
+    std::regex_search(headers_list[0], matcher, re);
     if (matcher.size() > 0) {
         http_version = matcher.str(1);
         status = std::stoi(matcher.str(2));
@@ -95,9 +94,8 @@ void cmd::http_response::check_response_code()
 
 void cmd::http_response::add_headers_to_map()
 {
-    std::regex re = std::regex{"^(\\S+):\\s*(.*)$"};
+    static std::regex re{"^(\\S+):\\s*(.*)$"};
     std::smatch matcher;
-
     for (auto it = headers_list.begin(); it != headers_list.end(); ++it) {
         std::regex_search(*it, matcher, re);
         if (matcher.size() > 0) {
@@ -170,6 +168,9 @@ void cmd::http_response::do_chunked(cmd::stream &s)
             break;
         headers_list.push_back(line);
     }
+
+    if (headers_list.size() > 0)
+        add_headers_to_map();  // Add new headers
 }
 
 void cmd::http_response::do_content_length(cmd::stream &s)

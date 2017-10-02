@@ -54,7 +54,7 @@ int cmd::stream::read(std::string &s, int amount)
     return s.size() - start;
 }
 
-int cmd::stream::read(char *buf, int amount)
+int cmd::stream::read(void *buf, int amount)
 {
     int read = 0;
     while (has_more()) {

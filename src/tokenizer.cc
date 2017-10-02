@@ -12,11 +12,11 @@ char *cmd::tokenizer::get_line(char *buffer, int size, std::string &write_to,
             if (write_to.back() == '\r')
                 write_to.pop_back();
 
-            tok = COMPLETE;
+            tok = token::COMPLETE;
             return buffer;
         }
         write_to.push_back(c);
     }
-    tok = WANT_MORE;
+    tok = token::WANT_MORE;
     return buffer;
 }

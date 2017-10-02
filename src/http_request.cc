@@ -10,7 +10,7 @@
 #include "tls_socket.h"
 
 static std::regex url_re{
-    "^(https?)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9-._~:/?#\\[\\]@!$&'()*+,;=`]*)?$"};
+    "^(\\S+)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9-._~:/?#\\[\\]@!$&'()*+,;=`]*)?$"};
 
 cmd::http_request::http_request(const std::string &url)
     : request_method{"GET"}, resource{"/"}, port{-1}, retries{0}
@@ -25,7 +25,12 @@ cmd::http_request::http_request(const std::string &url)
         if (matcher.str(3) != "") {
             port = std::stoi(matcher.str(3));
         } else {
-            port = (proto == "http" ? 80 : 443);
+            if (proto == "http")
+                port = 80;
+            else if (proto == "https")
+                port = 443;
+            else
+                throw std::runtime_error("Unsupported protocol: " + proto);
         }
         if (matcher.str(4) != "")
             resource = matcher.str(4);

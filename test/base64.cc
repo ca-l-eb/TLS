@@ -1,18 +1,18 @@
-#include <cassert>
-#include <iostream>
-#include <iomanip>
-#include <fstream>
 #include <gtest/gtest.h>
+#include <cassert>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
 
 #include "base64.h"
 
-TEST(base64, encode_hello_world)
+TEST(Base64, EncodeHelloWorld)
 {
     std::string encoded = cmd::base64::encode("Hello, world");
     ASSERT_EQ(encoded, "SGVsbG8sIHdvcmxk");
 }
 
-TEST(base64, encode_and_decode)
+TEST(Base64, EncodeAndDecode)
 {
     std::string s{"Random text to be encoded and decoded"};
     std::string encoded = cmd::base64::encode(s);
@@ -23,16 +23,16 @@ TEST(base64, encode_and_decode)
     ASSERT_EQ(decoded, s);
 }
 
-TEST(base64, encode_and_decode_random)
+TEST(Base64, EncodeAndDecodeRandom)
 {
     unsigned char rand[32];
     std::ifstream ifs;
     ifs.open("/dev/urandom");
-    ifs.read((char*) rand, sizeof(rand));
+    ifs.read((char *) rand, sizeof(rand));
 
     EXPECT_EQ(ifs.gcount(), sizeof(rand));
 
-    auto encoded = cmd::base64::encode((char*) rand, sizeof(rand));
+    auto encoded = cmd::base64::encode((char *) rand, sizeof(rand));
     auto decoded = cmd::base64::decode(encoded);
 
     ASSERT_EQ(sizeof(rand), decoded.size());

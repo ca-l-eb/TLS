@@ -7,8 +7,8 @@
 
 #include "server_socket.h"
 #include "socket.h"
-#include "stream.h"
 #include "ssl_manager.h"
+#include "stream.h"
 #include "tcp_server.h"
 #include "tcp_socket.h"
 #include "tls_server.h"
@@ -31,7 +31,7 @@ void handle_client(cmd::socket::ptr client)
 
 int main(int argc, char *argv[])
 {
-   int port = 5005;
+    int port = 5005;
     try {
         if (argc == 2) {
             port = std::stoi(argv[1]);

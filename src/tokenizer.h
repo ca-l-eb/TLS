@@ -7,7 +7,7 @@ namespace cmd
 {
 namespace tokenizer
 {
-enum token { WANT_MORE, COMPLETE };
+enum class token { WANT_MORE, COMPLETE };
 
 // Get next line from buffer (up to size), line buffers to write_to.
 // tok is the token type (check if more data needs read)
