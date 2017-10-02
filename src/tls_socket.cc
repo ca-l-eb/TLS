@@ -39,14 +39,14 @@ cmd::tls_socket::~tls_socket()
     SSL_free(ssl);
 }
 
-void cmd::tls_socket::connect(const char *host, int port)
+void cmd::tls_socket::connect(const std::string &host, int port)
 {
     const char *const PREFERRED_CIPHERS = "HIGH:!aNULL:!kRSA:!PSK:!SRP:!MD5:!RC4";
     long ret = SSL_set_cipher_list(ssl, PREFERRED_CIPHERS);
     if (ret != 1)
         throw_error_info("Could not set cipher list");
 
-    ret = SSL_set_tlsext_host_name(ssl, host);
+    ret = SSL_set_tlsext_host_name(ssl, host.c_str());
     if (ret != 1)
         throw_error_info("Could not set TLS extension for hostname verification");
 
@@ -65,20 +65,15 @@ void cmd::tls_socket::connect(const char *host, int port)
 
     X509 *cert = SSL_get_peer_certificate(ssl);
     if (cert == NULL)
-        throw_error_info("Could not retrieved certificate from " + std::string(host));
+        throw_error_info("Could not retrieved certificate from " + host);
     X509_free(cert);
 
     long verified = SSL_get_verify_result(ssl);
     if (verified != X509_V_OK)
-        throw std::runtime_error("Could not verify certificate for " + std::string(host));
+        throw std::runtime_error("Could not verify certificate for " + host);
 
-    this->host = std::string(host);
+    this->host = host;
     this->port = port;
-}
-
-void cmd::tls_socket::connect(const std::string &host, int port)
-{
-    connect(host.c_str(), port);
 }
 
 void cmd::tls_socket::close()
@@ -88,7 +83,7 @@ void cmd::tls_socket::close()
     sock.close();
 }
 
-int cmd::tls_socket::send(const char *buffer, int size, int flags)
+int cmd::tls_socket::send(const void *buffer, int size, int flags)
 {
     int wrote = 0;
     while (size > 0) {
@@ -117,7 +112,7 @@ int cmd::tls_socket::send(const std::string &str, int flags)
     return send(str.c_str(), str.size(), flags);
 }
 
-int cmd::tls_socket::recv(char *buffer, int size, int flags)
+int cmd::tls_socket::recv(void *buffer, int size, int flags)
 {
     int ret = SSL_read(ssl, buffer, size);
     if (ret > 0)
@@ -136,9 +131,9 @@ int cmd::tls_socket::recv(char *buffer, int size, int flags)
     return ret;
 }
 
-int cmd::tls_socket::recv(std::vector<char> &buf, int flags)
+int cmd::tls_socket::recv(std::vector<unsigned char> &buf, int flags)
 {
-    return recv(static_cast<char *>(&buf[0]), buf.size(), flags);
+    return recv(buf.data(), buf.size(), flags);
 }
 
 int cmd::tls_socket::get_fd()

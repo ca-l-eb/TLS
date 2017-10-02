@@ -23,16 +23,11 @@ cmd::tcp_socket::~tcp_socket()
     close();
 }
 
-void cmd::tcp_socket::connect(const char *host, int port)
-{
-    connect_host(host, port);
-    this->host = std::string(host);
-    this->port = port;
-}
-
 void cmd::tcp_socket::connect(const std::string &host, int port)
 {
-    connect(host.c_str(), port);
+    connect_host(host.c_str(), port);
+    this->host = host;
+    this->port = port;
 }
 
 void cmd::tcp_socket::close()
@@ -42,7 +37,7 @@ void cmd::tcp_socket::close()
     sock_fd = -1;
 }
 
-int cmd::tcp_socket::send(const char *buffer, int size, int flags)
+int cmd::tcp_socket::send(const void *buffer, int size, int flags)
 {
     return ::send(sock_fd, buffer, size, flags);
 }
@@ -52,12 +47,12 @@ int cmd::tcp_socket::send(const std::string &str, int flags)
     return ::send(sock_fd, str.c_str(), str.size(), flags);
 }
 
-int cmd::tcp_socket::recv(char *buffer, int size, int flags)
+int cmd::tcp_socket::recv(void *buffer, int size, int flags)
 {
     return ::recv(sock_fd, buffer, size, flags);
 }
 
-int cmd::tcp_socket::recv(std::vector<char> &buf, int flags)
+int cmd::tcp_socket::recv(std::vector<unsigned char> &buf, int flags)
 {
     return ::recv(sock_fd, &buf[0], buf.capacity(), flags);
 }
