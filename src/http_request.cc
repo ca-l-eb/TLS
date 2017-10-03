@@ -10,7 +10,8 @@
 #include "tls_socket.h"
 
 static std::regex url_re{
-    "^(\\S+)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/A-Za-z0-9-._~:/?#\\[\\]@!$&'()*+,;=`]*)?$"};
+    "^(\\S+)://([A-Za-z0-9.-]{2,})(?::(\\d+))?(/[/"
+    "A-Za-z0-9-._~:/?#\\[\\]@!$&'()*+,;=`]*)?$"};
 
 cmd::http_request::http_request(const std::string &url)
     : request_method{"GET"}, resource{"/"}, port{-1}, retries{0}
@@ -84,7 +85,8 @@ void cmd::http_request::connect()
         if (retries == 2)
             throw;  // Give up after 2 failed attempts
 
-        // Connect again; connection might have been auto closed for being open too long without use
+        // Connect again; connection might have been auto closed for being open too
+        // long without use
         connect();
     }
 }

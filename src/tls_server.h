@@ -21,6 +21,6 @@ private:
     int sock_fd;
     ;
 };
-}
+}  // namespace cmd
 
 #endif

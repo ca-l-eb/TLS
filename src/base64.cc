@@ -33,13 +33,14 @@ std::string cmd::base64::encode(const std::string &message)
     return encode(message.c_str(), message.length());
 }
 
-std::string cmd::base64::encode(const char *message, size_t size)
+std::string cmd::base64::encode(const void *msg, size_t size)
 {
     int out_size = static_cast<int>(std::ceil(size / 3.0f)) * 4;
     std::string encoded;
     encoded.resize(out_size);
     int loc = 0;
     int remaining = size;
+    const char *message = (const char *) msg;
     while (remaining > 2) {
         // Process the next 3 bytes
         encoded[loc++] = b64_table[(message[0] >> 2) & 0x3F];

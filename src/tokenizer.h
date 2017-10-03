@@ -13,7 +13,7 @@ enum class token { WANT_MORE, COMPLETE };
 // tok is the token type (check if more data needs read)
 // Returns the address of where to continue looking for next line
 char *get_line(char *buffer, int size, std::string &write_to, token &tok);
-}
-};
+}  // namespace tokenizer
+}  // namespace cmd
 
 #endif

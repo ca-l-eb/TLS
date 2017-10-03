@@ -23,6 +23,6 @@ private:
     SSL_CTX *context;
     const SSL_METHOD *method;
 };
-};
+}  // namespace cmd
 
 #endif

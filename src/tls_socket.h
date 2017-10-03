@@ -28,6 +28,6 @@ private:
     cmd::tcp_socket sock;
     SSL *ssl;
 };
-};
+}  // namespace cmd
 
 #endif

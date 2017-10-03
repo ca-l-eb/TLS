@@ -34,6 +34,6 @@ private:
 
     int port, retries;
 };
-};
+}  // namespace cmd
 
 #endif

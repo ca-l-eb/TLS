@@ -33,6 +33,6 @@ protected:
     std::string host = "";
     int port = 0;
 };
-};
+}  // namespace cmd
 
 #endif

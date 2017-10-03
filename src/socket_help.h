@@ -37,6 +37,6 @@ void print_connection_info(int fd)
 
     std::cout << "Connection from " << host << ":" << service << "(" << address << ")\n";
 }
-}
+}  // namespace cmd
 
 #endif

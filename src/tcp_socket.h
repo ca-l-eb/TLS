@@ -29,6 +29,6 @@ private:
     void connect_host(const std::string &host, int port);
     int sock_fd;
 };
-};
+}  // namespace cmd
 
 #endif

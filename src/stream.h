@@ -38,6 +38,6 @@ private:
 
     void buffer_data();
 };
-};
+}  // namespace cmd
 
 #endif

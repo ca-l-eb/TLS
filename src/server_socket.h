@@ -21,6 +21,6 @@ public:
 protected:
     int port;
 };
-}
+}  // namespace cmd
 
 #endif

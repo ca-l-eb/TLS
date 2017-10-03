@@ -23,6 +23,6 @@ private:
     }
     std::map<std::string, cmd::socket::ptr> host_socket_map;
 };
-}
+}  // namespace cmd
 
 #endif

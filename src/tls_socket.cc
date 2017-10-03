@@ -96,7 +96,7 @@ int cmd::tls_socket::send(const void *buffer, int size, int flags)
         int ssl_error = SSL_get_error(ssl, ret);
         switch (ssl_error) {
             case SSL_ERROR_ZERO_RETURN:
-                // TLS connection closed
+            // TLS connection closed
             case SSL_ERROR_SYSCALL:
                 // TCP connection closed
                 break;
@@ -121,7 +121,7 @@ int cmd::tls_socket::recv(void *buffer, int size, int flags)
     int ssl_error = SSL_get_error(ssl, ret);
     switch (ssl_error) {
         case SSL_ERROR_ZERO_RETURN:
-            // TLS connection closed
+        // TLS connection closed
         case SSL_ERROR_SYSCALL:
             // TCP connection closed
             break;

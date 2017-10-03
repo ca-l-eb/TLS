@@ -10,22 +10,23 @@ int main(int argc, char *argv[])
 {
     try {
         std::string resource{"/echo"};
-        cmd::websocket sock{resource, false};
+        cmd::websocket::websock sock{resource, false};
         sock.connect("demos.kaazing.com", 80);
         std::string s = "Hello, world!";
         sock.send(s);
 
-        cmd::websock::frame f;
-        do {
-            f = sock.next_frame();
+        std::vector<unsigned char> msg = sock.next_message();
 
-            int read = f.data.size();
-            std::cout << "Read " << read << " bytes\n";
-            for (int i = 0; i < read; i++) {
-                std::cout << std::setw(3) << std::hex << (int) f.data[i];
-            }
-            std::cout << "\n";
-        } while (!f.fin);  // Read until we get fin frame
+        for (auto c : msg) {
+            std::cout << std::setw(3) << std::hex << (int) c;
+        }
+        std::cout << "\n";
+
+        // Make sure null terminated so we can cast to char*
+        msg.push_back('\0');
+        char *str = reinterpret_cast<char *>(msg.data());
+
+        std::cout << str << "\n";
 
     } catch (std::exception &e) {
         std::cout << "Exception: " << e.what() << "\n";

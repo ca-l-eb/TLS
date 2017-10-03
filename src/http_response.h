@@ -42,6 +42,6 @@ private:
     void do_read_all(cmd::stream &s);
     void check_headers(cmd::stream &s);
 };
-};
+}  // namespace cmd
 
 #endif
