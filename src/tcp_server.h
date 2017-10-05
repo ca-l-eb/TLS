@@ -5,21 +5,20 @@
 
 namespace cmd
 {
-// return new socket descriptor bound to port
-int bind_server_socket(int port);
-
 class tcp_server : public cmd::server_socket
 {
 public:
     tcp_server();
-    ~tcp_server();
-    cmd::socket::ptr accept();
-    void bind(int port);
-    void close();
-    void listen(int waiting);
+    ~tcp_server() override;
+    cmd::socket::ptr accept() override;
+    void bind(int port) override;
+    void close() override;
+    void listen(int waiting) override;
+    int get_port() override;
 
 private:
     int sock_fd;
+    int port;
 };
 }  // namespace cmd
 

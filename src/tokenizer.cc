@@ -2,10 +2,10 @@
 
 #include "tokenizer.h"
 
-char *cmd::tokenizer::get_line(char *buffer, int size, std::string &write_to,
+char *cmd::tokenizer::get_line(char *buffer, size_t size, std::string &write_to,
                                cmd::tokenizer::token &tok)
 {
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         char c = *buffer++;
         if (c == '\n') {
             // Check if last character was \r, if so, remove from write_to

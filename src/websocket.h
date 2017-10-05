@@ -33,12 +33,12 @@ class websock
 {
 public:
     websock(const std::string &resource, bool secure);
-    ~websock();
-    cmd::websocket::frame next_frame();
+    ~websock() = default;
     void connect(const std::string &host, int port);
     void close();
     int send(const std::string &str, int flags = 0);
-    int send(const void *buffer, int size, int flags = 0);
+    int send(const void *buffer, size_t size, int flags = 0);
+    cmd::websocket::frame next_frame();
     std::vector<unsigned char> next_message();
 
 private:
@@ -49,9 +49,10 @@ private:
     bool closed;
 
     void check_websocket_upgrade(const std::string &expect, cmd::http_response &response);
-    std::vector<unsigned char> build_frame(const void *buffer, int size, cmd::websocket::opcode op);
-    unsigned char *resize_buffer_and_write_size(std::vector<unsigned char> &buf, int size);
-    void write_masked_data(const uint8_t *in, unsigned char *out, int size);
+    std::vector<unsigned char> build_frame(const void *buffer, size_t size,
+                                           cmd::websocket::opcode op);
+    unsigned char *resize_buffer_and_write_size(std::vector<unsigned char> &buf, size_t size);
+    void write_masked_data(const uint8_t *in, unsigned char *out, size_t size);
     void pong(std::vector<unsigned char> &msg);
 };
 

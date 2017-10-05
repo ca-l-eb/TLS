@@ -35,24 +35,23 @@ std::string cmd::base64::encode(const std::string &message)
 
 std::string cmd::base64::encode(const void *msg, size_t size)
 {
-    int out_size = static_cast<int>(std::ceil(size / 3.0f)) * 4;
+    size_t out_size = static_cast<size_t>(std::ceil(size / 3.0f)) * 4;
     std::string encoded;
     encoded.resize(out_size);
     int loc = 0;
-    int remaining = size;
     const char *message = (const char *) msg;
-    while (remaining > 2) {
+    while (size > 2) {
         // Process the next 3 bytes
         encoded[loc++] = b64_table[(message[0] >> 2) & 0x3F];
         encoded[loc++] = b64_table[((message[0] & 0x03) << 4) | ((message[1] & 0xF0) >> 4)];
         encoded[loc++] = b64_table[((message[1] & 0x0F) << 2) | ((message[2] & 0xC0) >> 6)];
         encoded[loc++] = b64_table[message[2] & 0x3F];
         message += 3;
-        remaining -= 3;
+        size -= 3;
     }
-    if (remaining > 0) {
+    if (size > 0) {
         encoded[loc++] = b64_table[(message[0] >> 2) & 0x3F];
-        if (remaining == 2) {
+        if (size == 2) {
             encoded[loc++] = b64_table[((message[0] & 0x03) << 4) | ((message[1] & 0xF0) >> 4)];
             encoded[loc++] = b64_table[(message[1] & 0x0F) << 2];
         } else {
@@ -76,7 +75,7 @@ std::vector<unsigned char> cmd::base64::decode(const char *message, size_t size)
         if (message[size - 1] == '=')
             size--;
     }
-    int out_size = (3 * size) / 4;
+    size_t out_size = (3 * size) / 4;
     std::vector<unsigned char> decoded(out_size);
     int loc = 0;
     while (size > 3) {

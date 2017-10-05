@@ -12,13 +12,14 @@ std::string cmd::stream::next_line()
     return line;
 }
 
-int cmd::stream::next_line(std::string &line)
+size_t cmd::stream::next_line(std::string &line)
 {
-    int start = line.size();
+    size_t start = line.size();
     cmd::tokenizer::token tok;
     // has_more buffers data and resets buf_ptr and remaining_in_buffer
     while (has_more()) {
-        char *next = cmd::tokenizer::get_line(buf_ptr, remaining_in_buffer, line, tok);
+        char *next =
+            cmd::tokenizer::get_line(buf_ptr, static_cast<size_t>(remaining_in_buffer), line, tok);
         remaining_in_buffer -= next - buf_ptr;
         buf_ptr = next;
         if (tok == cmd::tokenizer::token::WANT_MORE)
@@ -29,16 +30,16 @@ int cmd::stream::next_line(std::string &line)
     return line.size() - start;
 }
 
-std::string cmd::stream::read(int amount)
+std::string cmd::stream::read(size_t amount)
 {
     std::string s;
     read(s, amount);
     return s;
 }
 
-int cmd::stream::read(std::string &s, int amount)
+size_t cmd::stream::read(std::string &s, size_t amount)
 {
-    int start = s.size();
+    size_t start = s.size();
     while (has_more()) {
         if (remaining_in_buffer >= amount) {
             s.append(buf_ptr, amount);
@@ -46,7 +47,7 @@ int cmd::stream::read(std::string &s, int amount)
             buf_ptr += amount;
             break;
         } else {
-            s.append(buf_ptr, remaining_in_buffer);
+            s.append(buf_ptr, static_cast<unsigned long>(remaining_in_buffer));
             amount -= remaining_in_buffer;
             remaining_in_buffer = 0;
         }
@@ -54,9 +55,9 @@ int cmd::stream::read(std::string &s, int amount)
     return s.size() - start;
 }
 
-int cmd::stream::read(void *buf, int amount)
+size_t cmd::stream::read(void *buf, size_t amount)
 {
-    int read = 0;
+    size_t read = 0;
     while (has_more()) {
         if (remaining_in_buffer >= amount) {
             std::memcpy(buf, buf_ptr, amount);
@@ -65,7 +66,7 @@ int cmd::stream::read(void *buf, int amount)
             read += amount;
             break;
         } else {
-            std::memcpy(buf, buf_ptr, remaining_in_buffer);
+            std::memcpy(buf, buf_ptr, static_cast<size_t>(remaining_in_buffer));
             amount -= remaining_in_buffer;
             read += remaining_in_buffer;
             remaining_in_buffer = 0;
@@ -78,7 +79,7 @@ void cmd::stream::buffer_data()
 {
     // Only buffer data if there is no more in buffer
     if (remaining_in_buffer == 0) {
-        remaining_in_buffer = sock->recv(buffer, sizeof(buffer));
+        remaining_in_buffer = sock->recv(buffer, sizeof(buffer), 0);
         buf_ptr = buffer;  // Reset buf_ptr
     }
 }
@@ -87,4 +88,9 @@ bool cmd::stream::has_more()
 {
     buffer_data();
     return remaining_in_buffer > 0;
+}
+
+cmd::socket *cmd::stream::get_sock()
+{
+    return sock.get();
 }

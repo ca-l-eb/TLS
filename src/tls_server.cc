@@ -1,8 +1,3 @@
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <cerrno>
 #include <cstdio>
@@ -12,29 +7,28 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <memory>
-#include <string>
 
 #include "ssl_manager.h"
-#include "tcp_server.h"
 #include "tls_server.h"
 #include "tls_socket.h"
 
-cmd::tls_server::tls_server(const char *cert, const char *privkey) : context{nullptr}, sock_fd{-1}
+cmd::tls_server::tls_server(const std::string &cert, const std::string &privkey)
+    : context{nullptr}, sock_fd{-1}, port{-1}
 {
     context = cmd::ssl_manager::get_server_context();
     SSL_CTX_set_ecdh_auto(context, 1);
 
     /* Set the key and cert */
-    if (SSL_CTX_use_certificate_file(context, cert, SSL_FILETYPE_PEM) <= 0) {
+    if (SSL_CTX_use_certificate_file(context, cert.c_str(), SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
         SSL_CTX_free(context);
-        throw std::runtime_error("Error using certificate: " + std::string(cert));
+        throw std::runtime_error("Error using certificate: " + cert);
     }
 
-    if (SSL_CTX_use_PrivateKey_file(context, privkey, SSL_FILETYPE_PEM) <= 0) {
+    if (SSL_CTX_use_PrivateKey_file(context, privkey.c_str(), SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
         SSL_CTX_free(context);
-        throw std::runtime_error("Error using private key: " + std::string(privkey));
+        throw std::runtime_error("Error using private key: " + privkey);
     }
 }
 
@@ -47,7 +41,7 @@ cmd::tls_server::~tls_server()
 
 cmd::socket::ptr cmd::tls_server::accept()
 {
-    int client_fd = ::accept(sock_fd, NULL, NULL);
+    int client_fd = ::accept(sock_fd, nullptr, nullptr);
     if (client_fd == -1)
         throw std::runtime_error("Accept failed: " + std::string(std::strerror(errno)));
 
@@ -63,13 +57,11 @@ cmd::socket::ptr cmd::tls_server::accept()
 
 void cmd::tls_server::bind(int port)
 {
-    static bool init = false;
-    if (init)
+    if (sock_fd >= 0)
         return;
 
     sock_fd = bind_server_socket(port);
-
-    init = true;
+    this->port = port;
 }
 
 void cmd::tls_server::close()
@@ -84,4 +76,9 @@ void cmd::tls_server::listen(int waiting)
     int ret = ::listen(sock_fd, waiting);
     if (ret != 0)
         throw std::runtime_error(std::strerror(errno));
+}
+
+int cmd::tls_server::get_port()
+{
+    return port;
 }

@@ -1,8 +1,5 @@
 #include <gtest/gtest.h>
-#include <cassert>
 #include <fstream>
-#include <iomanip>
-#include <iostream>
 
 #include "base64.h"
 

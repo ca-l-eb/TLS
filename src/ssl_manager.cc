@@ -1,7 +1,6 @@
 #include <cassert>
 #include <iostream>
 #include <memory>
-#include <stdexcept>
 
 #include <openssl/err.h>
 #include <openssl/ssl.h>
@@ -11,9 +10,9 @@
 
 static void throw_error_info(const std::string &msg)
 {
-    int error = ERR_get_error();
+    auto error = ERR_get_error();
     if (error != 0) {
-        std::string error_string = std::string(ERR_error_string(error, NULL));
+        std::string error_string = std::string(ERR_error_string(error, nullptr));
         throw std::runtime_error(msg + "::" + error_string);
     }
 }
@@ -27,11 +26,11 @@ cmd::ssl_manager::ssl_manager()
     SSL_library_init();
 
     method = TLS_client_method();
-    if (method == NULL)
+    if (method == nullptr)
         throw_error_info("Error creating TLS method");
 
     context = SSL_CTX_new(method);
-    if (context == NULL)
+    if (context == nullptr)
         throw_error_info("Could not creat OpenSSL context");
 
     SSL_CTX_set_verify_depth(context, 4);
@@ -63,11 +62,11 @@ SSL_CTX *cmd::ssl_manager::get_server_context()
 
     const SSL_METHOD *method;
     method = TLS_server_method();
-    if (method == NULL)
+    if (method == nullptr)
         throw_error_info("Could not make TLS server method for OpenSSL");
 
     SSL_CTX *context = SSL_CTX_new(method);
-    if (context == NULL)
+    if (context == nullptr)
         throw_error_info("Could not make new SSL server context with TLS method");
 
     SSL_CTX_set_options(context, flags);

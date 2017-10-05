@@ -12,8 +12,7 @@ namespace cmd
 class http_response
 {
 public:
-    http_response(cmd::stream &stream);
-
+    explicit http_response(cmd::stream &stream);
     int status_code();
     std::string status_message();
     std::string body();
@@ -26,9 +25,8 @@ private:
     std::string http_version;
     std::vector<std::string> headers_list;
     std::multimap<std::string, std::string> headers_map;
-    int length;
-    enum body_type { NONE, CHUNKED, LENGTH };
-    enum body_type type;
+    size_t length;
+    enum class body_type { NONE, CHUNKED, LENGTH, ALL } type;
 
     void read_response(cmd::stream &s);
     void process_headers(cmd::stream &s);
@@ -40,7 +38,7 @@ private:
     void do_chunked(cmd::stream &s);
     void do_content_length(cmd::stream &s);
     void do_read_all(cmd::stream &s);
-    void check_headers(cmd::stream &s);
+    void check_connection_close(cmd::stream &s);
 };
 }  // namespace cmd
 

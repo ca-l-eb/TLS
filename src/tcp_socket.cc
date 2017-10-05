@@ -1,20 +1,14 @@
-#include <errno.h>
+#include <cerrno>
 #include <netdb.h>
-#include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include <cstdlib>
 #include <unistd.h>
 #include <cstring>
 #include <iostream>
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 #include "tcp_socket.h"
 
-cmd::tcp_socket::tcp_socket() : sock_fd{0} {}
+cmd::tcp_socket::tcp_socket() : sock_fd{0}, port{-1}, host{} {}
 
 cmd::tcp_socket::tcp_socket(int fd) : sock_fd{fd} {}
 
@@ -25,7 +19,7 @@ cmd::tcp_socket::~tcp_socket()
 
 void cmd::tcp_socket::connect(const std::string &host, int port)
 {
-    connect_host(host.c_str(), port);
+    connect_host(host, port);
     this->host = host;
     this->port = port;
 }
@@ -37,22 +31,22 @@ void cmd::tcp_socket::close()
     sock_fd = -1;
 }
 
-int cmd::tcp_socket::send(const void *buffer, int size, int flags)
+ssize_t cmd::tcp_socket::send(const void *buffer, size_t size, int flags)
 {
     return ::send(sock_fd, buffer, size, flags);
 }
 
-int cmd::tcp_socket::send(const std::string &str, int flags)
+ssize_t cmd::tcp_socket::send(const std::string &str, int flags)
 {
     return ::send(sock_fd, str.c_str(), str.size(), flags);
 }
 
-int cmd::tcp_socket::recv(void *buffer, int size, int flags)
+ssize_t cmd::tcp_socket::recv(void *buffer, size_t size, int flags)
 {
     return ::recv(sock_fd, buffer, size, flags);
 }
 
-int cmd::tcp_socket::recv(std::vector<unsigned char> &buf, int flags)
+ssize_t cmd::tcp_socket::recv(std::vector<unsigned char> &buf, int flags)
 {
     return ::recv(sock_fd, &buf[0], buf.capacity(), flags);
 }
@@ -62,10 +56,21 @@ int cmd::tcp_socket::get_fd()
     return sock_fd;
 }
 
+int cmd::tcp_socket::get_port()
+{
+    return port;
+}
+
+std::string cmd::tcp_socket::get_host()
+{
+    return host;
+}
+
 void cmd::tcp_socket::connect_host(const std::string &host, int port)
 {
     struct addrinfo *addr;
-    struct addrinfo hints;
+    struct addrinfo hints {
+    };
     std::memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;      // Use IPv4 or IPv6
     hints.ai_socktype = SOCK_STREAM;  // Request reliable, duplex connection (probably TCP)
@@ -77,7 +82,7 @@ void cmd::tcp_socket::connect_host(const std::string &host, int port)
 
     // Loop through connections trying each
     auto i = addr;
-    for (; i != NULL; i = i->ai_next) {
+    for (; i != nullptr; i = i->ai_next) {
         // Create an unbound socket for the connection
         sock_fd = ::socket(i->ai_family, i->ai_socktype, i->ai_protocol);
         if (sock_fd == -1)
@@ -91,6 +96,6 @@ void cmd::tcp_socket::connect_host(const std::string &host, int port)
 
     freeaddrinfo(addr);
 
-    if (i == NULL)
+    if (i == nullptr)
         throw std::runtime_error(strerror(errno));  // Could not connect
 }

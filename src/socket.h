@@ -9,29 +9,18 @@ namespace cmd
 class socket
 {
 public:
-    virtual ~socket() {}
+    virtual ~socket() = default;
     virtual void connect(const std::string &host, int port) = 0;
     virtual void close() = 0;
-    virtual int send(const void *buffer, int size, int flags = 0) = 0;
-    virtual int send(const std::string &str, int flags = 0) = 0;
-    virtual int recv(void *buffer, int size, int flags = 0) = 0;
-    virtual int recv(std::vector<unsigned char> &buf, int flags = 0) = 0;
+    virtual ssize_t send(const void *buffer, size_t size, int flags) = 0;
+    virtual ssize_t send(const std::string &str, int flags) = 0;
+    virtual ssize_t recv(void *buffer, size_t size, int flags) = 0;
+    virtual ssize_t recv(std::vector<unsigned char> &buf, int flags) = 0;
     virtual int get_fd() = 0;
-
-    std::string get_host()
-    {
-        return host;
-    }
-    int get_port()
-    {
-        return port;
-    }
+    virtual int get_port() = 0;
+    virtual std::string get_host() = 0;
 
     typedef std::shared_ptr<cmd::socket> ptr;
-
-protected:
-    std::string host = "";
-    int port = 0;
 };
 }  // namespace cmd
 

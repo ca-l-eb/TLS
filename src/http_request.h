@@ -18,7 +18,7 @@ namespace cmd
 class http_request
 {
 public:
-    http_request(const std::string &url);
+    explicit http_request(cmd::stream &stream);
     void set_request_method(const std::string &method);
     void set_header(const std::string &header, const std::string &value);
     void set_body(const std::string &body);
@@ -27,12 +27,9 @@ public:
     cmd::http_response response();
 
 private:
-    cmd::socket::ptr sock;
     std::string host, request_method, resource, body;
     std::map<std::string, std::string> headers;
-    std::unique_ptr<cmd::stream> stream;
-
-    int port, retries;
+    cmd::stream& stream;
 };
 }  // namespace cmd
 

@@ -2,11 +2,10 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <thread>
+#include <csignal>
 
 #include "server_socket.h"
-#include "socket.h"
 #include "ssl_manager.h"
 #include "stream.h"
 #include "tcp_server.h"
@@ -21,7 +20,7 @@ void handle_client(cmd::socket::ptr client)
     std::cout << "Connection " << fd << " opened\n";
     std::string line;
     while (s.has_more()) {
-        int read = s.next_line(line);
+        size_t read = s.next_line(line);
         client->send(line + "\n", 0);
         std::cout << fd << "(" << read << "): " << line << "\n";
         line.clear();
@@ -40,6 +39,8 @@ int main(int argc, char *argv[])
         std::cerr << "Usage: " << argv[0] << " [port]\n";
         exit(1);
     }
+
+    std::signal(SIGPIPE, SIG_IGN); // Ignore SIGPIPE
 
     try {
         // cmd::tls_server serv{"cert.pem", "key.pem"};

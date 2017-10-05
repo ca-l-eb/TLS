@@ -16,25 +16,22 @@ public:
     std::string next_line();
 
     // Return number of bytes in next line (written to line)
-    int next_line(std::string &line);
+    size_t next_line(std::string &line);
 
     // Read amount bytes into the buffer, return amount bytes actually written
-    int read(void *buf, int amount);
-    int read(std::string &s, int amount);
-    std::string read(int amount);
+    size_t read(void *buf, size_t amount);
+    size_t read(std::string &s, size_t amount);
+    std::string read(size_t amount);
 
     bool has_more();
-    cmd::socket *get_sock()
-    {
-        return sock.get();
-    }
+    cmd::socket *get_sock();
 
 private:
     cmd::socket::ptr sock;
 
     char buffer[4096];
     char *buf_ptr;
-    int remaining_in_buffer;
+    ssize_t remaining_in_buffer;
 
     void buffer_data();
 };

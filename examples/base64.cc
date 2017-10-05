@@ -2,7 +2,6 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <string>
 #include <vector>
 
 #include "base64.h"
@@ -13,7 +12,7 @@ int main(int argc, char *argv[])
 
     for (int i = 1; i < argc; i++) {
         auto t1 = high_resolution_clock::now();
-        int len = std::strlen(argv[i]);
+        size_t len = std::strlen(argv[i]);
         auto t2 = high_resolution_clock::now();
         std::string encoded11 = cmd::base64::encode(argv[i], len);
         auto t3 = high_resolution_clock::now();

@@ -1,13 +1,10 @@
-#include <unistd.h>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <thread>
+#include <http_pool.h>
 
 #include "http_request.h"
-#include "http_response.h"
-#include "socket.h"
 #include "ssl_manager.h"
 #include "tcp_socket.h"
 #include "tls_socket.h"
@@ -20,8 +17,11 @@ int main(int argc, char *argv[])
         host = std::string(argv[1]);
     }
     try {
-        cmd::http_request r{host};
+        auto sock = cmd::http_pool::get_connection("www.alucard.io", 443, true);
+        cmd::stream stream{sock};
+        cmd::http_request r{stream};
         r.set_request_method("GET");
+        r.set_resource("/index.html");
         r.connect();
         cmd::http_response response = r.response();
 

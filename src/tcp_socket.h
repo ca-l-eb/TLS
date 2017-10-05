@@ -15,19 +15,24 @@ class tcp_socket : public cmd::socket
 {
 public:
     tcp_socket();
-    tcp_socket(int fd);
-    ~tcp_socket();
-    void connect(const std::string &host, int port);
-    void close();
-    int send(const void *buffer, int size, int flags = 0);
-    int send(const std::string &str, int flags = 0);
-    int recv(void *buffer, int size, int flags = 0);
-    int recv(std::vector<unsigned char> &buf, int flags = 0);
-    int get_fd();
+
+    explicit tcp_socket(int fd);
+    ~tcp_socket() override;
+    void connect(const std::string &host, int port) override;
+    void close() override;
+    ssize_t send(const void *buffer, size_t size, int flags) override;
+    ssize_t send(const std::string &str, int flags) override;
+    ssize_t recv(void *buffer, size_t size, int flags) override;
+    ssize_t recv(std::vector<unsigned char> &buf, int flags) override;
+    int get_fd() override;
+    int get_port() override;
+    std::string get_host() override;
 
 private:
     void connect_host(const std::string &host, int port);
     int sock_fd;
+    int port;
+    std::string host;
 };
 }  // namespace cmd
 
