@@ -9,6 +9,8 @@ class tcp_server : public cmd::server_socket
 {
 public:
     tcp_server();
+    tcp_server(const tcp_server &) = delete;
+    tcp_server &operator=(const tcp_server &) = delete;
     ~tcp_server() override;
     cmd::socket::ptr accept() override;
     void bind(int port) override;

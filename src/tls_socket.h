@@ -14,6 +14,8 @@ class tls_socket : public cmd::socket
 {
 public:
     tls_socket();
+    tls_socket(const tls_socket &) = delete;
+    tls_socket &operator=(const tls_socket &) = delete;
     tls_socket(int fd, SSL *ssl);
     ~tls_socket() override;
     void connect(const std::string &host, int port) override;

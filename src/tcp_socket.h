@@ -17,6 +17,8 @@ public:
     tcp_socket();
 
     explicit tcp_socket(int fd);
+    tcp_socket(const tcp_socket &) = delete;
+    tcp_socket &operator=(const tcp_socket &) = delete;
     ~tcp_socket() override;
     void connect(const std::string &host, int port) override;
     void close() override;

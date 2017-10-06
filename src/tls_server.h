@@ -11,6 +11,8 @@ class tls_server : public cmd::server_socket
 {
 public:
     tls_server(const std::string &cert, const std::string &privkey);
+    tls_server(const tls_server &) = delete;
+    tls_server &operator=(const tls_server &) = delete;
     ~tls_server() override;
     cmd::socket::ptr accept() override;
     void bind(int port) override;
