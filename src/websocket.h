@@ -21,6 +21,23 @@ enum class opcode : unsigned char {
     pong = 0xA
 };
 
+enum class status_code : uint16_t {
+
+    normal = 1000,
+    going_away = 1001,
+    protocol_error = 1002,
+    data_error = 1003,  // e.g. got binary when expected text
+    reserved = 1004,
+    no_status_code_present = 1005,  // don't send
+    closed_abnormally = 1006,       // don't send
+    inconsistent_data = 1007,
+    policy_violation = 1008,  // generic code return
+    message_too_big = 1009,
+    extension_negotiation_failure = 1010,
+    unexpected_error = 1011,
+    tls_handshake_error = 1015  // don't send
+};
+
 struct frame {
     bool fin;
     opcode op;
@@ -29,11 +46,13 @@ struct frame {
 
 static const std::string guid{"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"};
 
-class websock
+class socket
 {
 public:
-    websock(const std::string &resource, bool secure);
-    ~websock() = default;
+    socket(const std::string &resource, bool secure);
+    socket(const socket &) = delete;
+    socket &operator=(const socket &) = delete;
+    ~socket();
     void connect(const std::string &host, int port);
     void close();
     int send(const std::string &str, int flags = 0);
@@ -54,6 +73,7 @@ private:
     unsigned char *resize_buffer_and_write_size(std::vector<unsigned char> &buf, size_t size);
     void write_masked_data(const uint8_t *in, unsigned char *out, size_t size);
     void pong(std::vector<unsigned char> &msg);
+    void close(websocket::status_code);
 };
 
 }  // namespace websocket

@@ -9,22 +9,24 @@ int main(int argc, char *argv[])
 {
     try {
         std::string resource{"/echo"};
-        cmd::websocket::websock sock{resource, false};
+        cmd::websocket::socket sock{resource, false};
         sock.connect("demos.kaazing.com", 80);
         std::string s = "Hello, world!";
         sock.send(s);
-
+        sock.close();
         std::vector<unsigned char> msg = sock.next_message();
 
-        for (auto c : msg) {
+        std::cout << "Received:\n";
+        std::cout.write(reinterpret_cast<char *>(msg.data()), msg.size());
+        std::cout << "\n";
+
+        cmd::websocket::frame f = sock.next_frame();
+
+        std::cout << "Closing message:\n";
+        for (auto c : f.data) {
             std::cout << std::setw(3) << std::hex << (int) c;
         }
         std::cout << "\n";
-
-        char *str = reinterpret_cast<char *>(msg.data());
-        std::cout.write(str, msg.size());
-        std::cout << "\n";
-
     } catch (std::exception &e) {
         std::cout << "Exception: " << e.what() << "\n";
     }
