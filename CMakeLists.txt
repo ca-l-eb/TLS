@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 11)
 
 project(cmdsock)
@@ -23,7 +23,8 @@ set(SOURCE_FILES
     src/tls_socket.cc
     src/tokenizer.cc
     src/websocket.cc
-        src/resource_parser.cc src/resource_parser.h)
+    src/resource_parser.cc
+    src/resource_parser.h)
 
 set(HEADER_FILES
     src/base64.h
@@ -40,7 +41,8 @@ set(HEADER_FILES
     src/tls_socket.h
     src/tokenizer.h
     src/websocket.h
-        src/resource_parser.cc src/resource_parser.h)
+    src/resource_parser.cc
+    src/resource_parser.h)
 
 add_library(cmdsock SHARED ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(cmdsock PUBLIC ${OPENSSL_INCLUDE_DIR} src)

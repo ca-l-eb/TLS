@@ -1,9 +1,9 @@
 #include <unistd.h>
+#include <csignal>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <thread>
-#include <csignal>
 
 #include "server_socket.h"
 #include "ssl_manager.h"
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    std::signal(SIGPIPE, SIG_IGN); // Ignore SIGPIPE
+    std::signal(SIGPIPE, SIG_IGN);  // Ignore SIGPIPE
 
     try {
         // cmd::tls_server serv{"cert.pem", "key.pem"};
