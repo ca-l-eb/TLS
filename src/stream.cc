@@ -75,6 +75,7 @@ size_t cmd::stream::read(void *buf, size_t amount)
             std::memcpy(buf, buf_ptr, remaining);
             amount -= remaining_in_buffer;
             read += remaining_in_buffer;
+            buf += remaining_in_buffer;
             remaining_in_buffer = 0;
         }
     }
