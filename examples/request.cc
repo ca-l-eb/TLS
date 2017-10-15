@@ -11,11 +11,6 @@
 
 int main(int argc, char *argv[])
 {
-    std::string host = "https://www.alucard.io:443";
-
-    if (argc >= 2) {
-        host = std::string(argv[1]);
-    }
     try {
         auto sock = cmd::http_pool::get_connection("www.alucard.io", 443, true);
         cmd::stream stream{sock};

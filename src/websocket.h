@@ -48,25 +48,21 @@ static const std::string guid{"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"};
 class socket
 {
 public:
-    socket(const std::string &resource, bool secure);
+    socket(const std::string &resource, cmd::stream &stream);
     socket(const socket &) = delete;
     socket &operator=(const socket &) = delete;
     ~socket();
-    void connect(const std::string &host, int port);
+    void connect();
     void close();
-    int send(const std::string &str, int flags = 0);
-    int send(const void *buffer, size_t size, int flags = 0);
+    int send(const std::string &str);
+    int send(const void *buffer, size_t size);
     cmd::websocket::frame next_frame();
     std::vector<unsigned char> next_message();
-    void set_header(const std::string &header, const std::string &value);
 
 private:
-    cmd::socket::ptr sock;
     cmd::stream stream;
     std::string resource;
-    bool secure;
     bool closed;
-    std::map<std::string, std::string> headers;
 
     void check_websocket_upgrade(const std::string &expect, cmd::http_response &response);
     std::vector<unsigned char> build_frame(const void *buffer, size_t size,

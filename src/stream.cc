@@ -3,7 +3,11 @@
 #include "stream.h"
 #include "tokenizer.h"
 
-cmd::stream::stream(cmd::socket::ptr sock) : sock{sock}, remaining_in_buffer{0} {}
+cmd::stream::stream(cmd::socket::ptr sock) : sock{sock}, remaining_in_buffer{0}
+{
+    if (sock == nullptr)
+        throw std::runtime_error("nullptr passed to cmd::stream");
+}
 
 std::string cmd::stream::next_line()
 {
@@ -75,6 +79,19 @@ size_t cmd::stream::read(void *buf, size_t amount)
         }
     }
     return read;
+}
+
+size_t cmd::stream::write(const void *buf, size_t amount)
+{
+    auto wrote = sock->send(buf, amount, 0);
+    if (wrote < 0)
+        return 0;
+    return static_cast<size_t>(wrote);
+}
+
+size_t cmd::stream::write(const std::string &s)
+{
+    return write(s.c_str(), s.size());
 }
 
 void cmd::stream::buffer_data()

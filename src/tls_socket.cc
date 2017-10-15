@@ -31,6 +31,7 @@ cmd::tls_socket::tls_socket(int fd, SSL *ssl) : sock{fd}, ssl{ssl}
 
 cmd::tls_socket::~tls_socket()
 {
+    close();
     SSL_free(ssl);
 }
 

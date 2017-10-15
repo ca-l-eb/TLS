@@ -4,13 +4,18 @@
 
 #include "socket.h"
 #include "websocket.h"
+#include "http_pool.h"
+
 
 int main(int argc, char *argv[])
 {
     try {
         std::string resource{"/echo"};
-        cmd::websocket::socket sock{resource, false};
-        sock.connect("demos.kaazing.com", 80);
+        auto connection = cmd::http_pool::get_connection("demos.kaazing.com", 80, false);
+        auto stream = cmd::stream{connection};
+
+        cmd::websocket::socket sock{resource, stream};
+        sock.connect();
         std::string s = "Hello, world!";
         sock.send(s);
         sock.close();

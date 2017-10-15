@@ -42,7 +42,7 @@ void cmd::http_request::connect()
     } else {
         msg += "\r\n";
     }
-    stream.get_sock()->send(msg, 0);
+    stream.write(msg);
     headers.clear();           // Clear headers for next connect()
     set_header("Host", host);  // Reset Host
     resource = "/";            // Default resource

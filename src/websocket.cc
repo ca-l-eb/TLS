@@ -17,24 +17,18 @@ using random_byte_engine =
 thread_local random_byte_engine generator{
     static_cast<unsigned char>(std::chrono::system_clock::now().time_since_epoch().count())};
 
-cmd::websocket::socket::socket(const std::string &resource, bool secure)
-    : stream{nullptr}, resource{resource}, secure{secure}, closed{false}
+cmd::websocket::socket::socket(const std::string &resource, cmd::stream &stream)
+    : stream{stream}, resource{resource}, closed{false}
 {
 }
 
 cmd::websocket::socket::~socket()
 {
-    sock->close();
+    close();
 }
 
-void cmd::websocket::socket::connect(const std::string &host, int port)
+void cmd::websocket::socket::connect()
 {
-    sock = cmd::http_pool::get_connection(host, port, secure);
-
-    // Consider storing streams somewhere with global access
-    // because they can contain information from other "connections"
-    stream = cmd::stream{sock};
-
     // Want 16 byte random key
     std::vector<uint8_t> nonce(16);
     std::generate(nonce.begin(), nonce.end(), std::ref(generator));
@@ -46,13 +40,8 @@ void cmd::websocket::socket::connect(const std::string &host, int port)
     req.set_header("Upgrade", "websocket");
     req.set_header("Connection", "Upgrade");
     req.set_header("Sec-WebSocket-Key", encoded);
-    req.set_header("Origin", host);
+    req.set_header("Origin", stream.get_sock()->get_host());
     req.set_header("Sec-WebSocket-Version", "13");
-
-    for (auto &a : headers)
-        req.set_header(a.first, a.second);
-    headers.clear();
-
     req.connect();  // Send the request
 
     std::string concat = encoded + cmd::websocket::guid;
@@ -78,7 +67,6 @@ void cmd::websocket::socket::check_websocket_upgrade(const std::string &expect,
     }
 
     auto &headers_map = response.headers();
-    //    auto it = headers_map.find("Sec-WebSocket-Accept");
     auto it = headers_map.find("sec-websocket-accept");
     if (it == headers_map.end())
         throw std::runtime_error("No Sec-WebSocket-Accept found");
@@ -86,12 +74,12 @@ void cmd::websocket::socket::check_websocket_upgrade(const std::string &expect,
         throw std::runtime_error("Got invalid Sec-WebSocket-Accept");
 }
 
-int cmd::websocket::socket::send(const void *buffer, size_t size, int flags)
+int cmd::websocket::socket::send(const void *buffer, size_t size)
 {
     std::vector<unsigned char> buf =
         build_frame(buffer, size, websocket::opcode::text);  // Always text for now
 
-    return static_cast<int>(sock->send(buf.data(), buf.size(), flags));
+    return static_cast<int>(stream.write(buf.data(), buf.size()));
 }
 
 std::vector<unsigned char> cmd::websocket::socket::build_frame(const void *buffer, size_t size,
@@ -179,9 +167,9 @@ void cmd::websocket::socket::write_masked_data(const uint8_t *in, unsigned char 
         *out++ = *in++ ^ mask2;
 }
 
-int cmd::websocket::socket::send(const std::string &str, int flags)
+int cmd::websocket::socket::send(const std::string &str)
 {
-    return send(str.c_str(), str.size(), flags);
+    return send(str.c_str(), str.size());
 }
 
 // Returns the next WebSocket frame. May be a fragmented message;
@@ -262,8 +250,7 @@ cmd::websocket::frame cmd::websocket::socket::next_frame()
                 break;
             if (len >= 2) {
                 // Respond with the same code sent
-                uint16_t code = 0;
-                code |= (frame.data[0] << 8) | frame.data[1];
+                uint16_t code = (frame.data[0] << 8) | frame.data[1];
                 close(static_cast<websocket::status_code>(code));
             } else {
                 // Invalid WebSocket close frame... respond with normal close response
@@ -286,7 +273,7 @@ void cmd::websocket::socket::pong(std::vector<unsigned char> &msg)
 {
     std::vector<unsigned char> f{build_frame(msg.data(), msg.size(), websocket::opcode::pong)};
     // At most, send 125 bytes in control frame
-    send(f.data(), std::min((size_t) f.size(), (size_t) 125), 0);
+    send(f.data(), std::min((size_t) f.size(), (size_t) 125));
 }
 
 std::vector<unsigned char> cmd::websocket::socket::next_message()
@@ -337,10 +324,5 @@ void cmd::websocket::socket::close(websocket::status_code code)
     buf[1] = static_cast<unsigned char>(c & 0x00FF);
 
     std::vector<unsigned char> frame{build_frame(buf, sizeof(buf), websocket::opcode::close)};
-    sock->send(frame.data(), frame.size(), 0);
-}
-
-void cmd::websocket::socket::set_header(const std::string &header, const std::string &value)
-{
-    headers[header] = value;
+    stream.write(frame.data(), frame.size());
 }
