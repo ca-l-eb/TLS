@@ -1,5 +1,4 @@
 #include <cassert>
-#include <iostream>
 #include <memory>
 
 #include <openssl/err.h>
@@ -25,13 +24,17 @@ cmd::ssl_manager::ssl_manager()
     ERR_load_crypto_strings();
     SSL_library_init();
 
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
     method = TLS_client_method();
+#else
+    method = SSLv23_client_method();
+#endif
     if (method == nullptr)
         throw_error_info("Error creating TLS method");
 
     context = SSL_CTX_new(method);
     if (context == nullptr)
-        throw_error_info("Could not creat OpenSSL context");
+        throw_error_info("Could not create OpenSSL context");
 
     SSL_CTX_set_verify_depth(context, 4);
     SSL_CTX_set_options(context, flags);
@@ -61,7 +64,11 @@ SSL_CTX *cmd::ssl_manager::get_server_context()
     instance();
 
     const SSL_METHOD *method;
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
     method = TLS_server_method();
+#else
+    method = SSLv23_client_method();
+#endif
     if (method == nullptr)
         throw_error_info("Could not make TLS server method for OpenSSL");
 

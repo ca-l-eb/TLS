@@ -1,5 +1,6 @@
 #include <openssl/sha.h>
 #include <chrono>
+#include <cmath>
 #include <exception>
 #include <map>
 #include <random>
@@ -23,9 +24,9 @@ cmd::websocket::socket::socket(const std::string &resource, bool secure)
 
 cmd::websocket::socket::~socket()
 {
-    close();
     sock->close();
 }
+
 void cmd::websocket::socket::connect(const std::string &host, int port)
 {
     sock = cmd::http_pool::get_connection(host, port, secure);
@@ -47,6 +48,11 @@ void cmd::websocket::socket::connect(const std::string &host, int port)
     req.set_header("Sec-WebSocket-Key", encoded);
     req.set_header("Origin", host);
     req.set_header("Sec-WebSocket-Version", "13");
+
+    for (auto &a : headers)
+        req.set_header(a.first, a.second);
+    headers.clear();
+
     req.connect();  // Send the request
 
     std::string concat = encoded + cmd::websocket::guid;
@@ -72,7 +78,8 @@ void cmd::websocket::socket::check_websocket_upgrade(const std::string &expect,
     }
 
     auto &headers_map = response.headers();
-    auto it = headers_map.find("Sec-WebSocket-Accept");
+    //    auto it = headers_map.find("Sec-WebSocket-Accept");
+    auto it = headers_map.find("sec-websocket-accept");
     if (it == headers_map.end())
         throw std::runtime_error("No Sec-WebSocket-Accept found");
     if (it->second != expect)
@@ -93,13 +100,14 @@ std::vector<unsigned char> cmd::websocket::socket::build_frame(const void *buffe
     std::vector<unsigned char> buf;
 
     const auto *read_from = reinterpret_cast<const uint8_t *>(buffer);
-    unsigned char *write_to = resize_buffer_and_write_size(buf, size);
+
     // location where to start writing the rest of the message
     // (mask + mask-encoded data)
+    unsigned char *write_to = resize_buffer_and_write_size(buf, size);
 
-    auto opcode_value = static_cast<std::underlying_type<cmd::websocket::opcode>::type>(op);
+    // Set FIN bit and opcode in first byte of frame
     buf[0] = 0x80;  // FIN bit set (this is a complete frame)
-    buf[0] |= opcode_value;
+    buf[0] |= static_cast<unsigned char>(op);
 
     write_masked_data(read_from, write_to, size);
 
@@ -107,27 +115,28 @@ std::vector<unsigned char> cmd::websocket::socket::build_frame(const void *buffe
 }
 
 // Resizes the vector to hold the entire WebSocket frame and returns
-// the index of where to begin writing the rest of the frame
+// the address of where to begin writing the rest of the frame
 unsigned char *cmd::websocket::socket::resize_buffer_and_write_size(std::vector<unsigned char> &buf,
                                                                     size_t size)
 {
+    const uint8_t mask_bit = 0x80;
     if (size == 0) {
-        buf.resize(6);  // 6 bytes minimum
-        buf[1] = 0x8;   // Masked, but no message body
+        buf.resize(6);      // 6 byte is smallest frame size
+        buf[1] = mask_bit;  // Data is masked... but there actually no data
         return &buf[2];
     } else if (size < 126) {
         buf.resize(size + 6);
-        buf[1] = static_cast<unsigned char>(0x80 | (uint8_t) size);
+        buf[1] = static_cast<unsigned char>(mask_bit | (uint8_t) size);
         return &buf[2];
-    } else if (size < 65536) {  // 16 bit unsigned max
+    } else if (size <= std::numeric_limits<uint16_t>::max()) {  // 16 bit unsigned max
         buf.resize(size + 8);
-        buf[1] = 0x80 | 126;
+        buf[1] = mask_bit | 126;
         buf[2] = static_cast<unsigned char>((size & 0xFF00) >> 8);
         buf[3] = static_cast<unsigned char>(size & 0x00FF);
         return &buf[4];
     } else {
         buf.resize(size + 14);
-        buf[1] = 0x80 | 127;
+        buf[1] = mask_bit | 127;
         // We're only reading sizes up to an int, but fill 8 bytes according
         // to WebSocket protocol. (64 bit message size seems overkill)
         buf[2] = static_cast<unsigned char>((size & 0x7F00000000000000) >> 56);  // MSB always 0
@@ -196,10 +205,13 @@ cmd::websocket::frame cmd::websocket::socket::next_frame()
         throw std::runtime_error("Could not read next WebSocket frame: no data");
     }
 
-    if (tmp[0] & 0x70) {
-        throw std::runtime_error("Unexpected extenstion flag");
+    const uint8_t reserved_flags = 0x70;
+    const uint8_t mask_bit = 0x80;
+
+    if (tmp[0] & reserved_flags) {
+        throw std::runtime_error("Unexpected extension flag");
     }
-    if (tmp[1] & 0x80) {
+    if (tmp[1] & mask_bit) {
         // ERROR: server sent masked data
         close(websocket::status_code::protocol_error);
         throw std::runtime_error("WebSocket protocol error: server sent masked data");
@@ -273,7 +285,8 @@ cmd::websocket::frame cmd::websocket::socket::next_frame()
 void cmd::websocket::socket::pong(std::vector<unsigned char> &msg)
 {
     std::vector<unsigned char> f{build_frame(msg.data(), msg.size(), websocket::opcode::pong)};
-    send(f.data(), f.size(), 0);
+    // At most, send 125 bytes in control frame
+    send(f.data(), std::min((size_t) f.size(), (size_t) 125), 0);
 }
 
 std::vector<unsigned char> cmd::websocket::socket::next_message()
@@ -287,17 +300,18 @@ std::vector<unsigned char> cmd::websocket::socket::next_message()
     while (!f.fin) {
         f = next_frame();
         switch (f.op) {
-            case websocket::opcode::ping:
-            case websocket::opcode::pong:
-                // next_frame handles pings
+            case websocket::opcode::continuation:
+                message.insert(message.end(), f.data.begin(), f.data.end());
                 break;
             case websocket::opcode::text:
             case websocket::opcode::binary:
                 // We're expecting continuation frame if the FIN bit wasn't set
                 close(websocket::status_code::inconsistent_data);
                 break;
-            case websocket::opcode::continuation:
-                message.insert(message.end(), f.data.begin(), f.data.end());
+            case websocket::opcode::close:
+            case websocket::opcode::ping:
+            case websocket::opcode::pong:
+                // next_frame handles pings and close
                 break;
             default:
                 close(websocket::status_code::protocol_error);
@@ -324,4 +338,9 @@ void cmd::websocket::socket::close(websocket::status_code code)
 
     std::vector<unsigned char> frame{build_frame(buf, sizeof(buf), websocket::opcode::close)};
     sock->send(frame.data(), frame.size(), 0);
+}
+
+void cmd::websocket::socket::set_header(const std::string &header, const std::string &value)
+{
+    headers[header] = value;
 }

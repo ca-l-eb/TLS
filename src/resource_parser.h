@@ -1,10 +1,11 @@
-#ifndef CMDSOCK_RESOURCE_PARSER_H
-#define CMDSOCK_RESOURCE_PARSER_H
+#ifndef CMD_RESOURCE_PARSER_H
+#define CMD_RESOURCE_PARSER_H
 
-
-class resource_parser {
-
+namespace cmd
+{
+class resource_parser
+{
 };
-
+}
 
 #endif

@@ -29,7 +29,7 @@ public:
 private:
     std::string host, request_method, resource, body;
     std::map<std::string, std::string> headers;
-    cmd::stream& stream;
+    cmd::stream &stream;
 };
 }  // namespace cmd
 

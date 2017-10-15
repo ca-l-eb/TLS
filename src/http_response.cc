@@ -2,11 +2,7 @@
 
 #include "http_pool.h"
 #include "http_response.h"
-
-static bool contains(const std::string &str, const std::string &c)
-{
-    return str.find(c) != str.npos;
-}
+#include "string_utils.h"
 
 cmd::http_response::http_response(cmd::stream &stream) : status{0}, length{0}, type{body_type::NONE}
 {
@@ -88,15 +84,15 @@ void cmd::http_response::check_response_code()
 
     std::smatch matcher;
     std::regex_search(headers_list[0], matcher, re);
-    if (!matcher.empty()) {
-        http_version = matcher.str(1);
-        status = std::stoi(matcher.str(2));
-        status_message_str = matcher.str(3);
-
-        // Remove this from headers_list because it isn't really a header
-        headers_list.erase(headers_list.begin());
-    } else
+    if (matcher.empty())
         throw std::runtime_error("Invalid HTTP response");
+
+    http_version = matcher.str(1);
+    status = std::stoi(matcher.str(2));
+    status_message_str = matcher.str(3);
+
+    // Remove this from headers_list because it isn't really a header
+    headers_list.erase(headers_list.begin());
 }
 
 void cmd::http_response::add_headers_to_map()
@@ -106,7 +102,8 @@ void cmd::http_response::add_headers_to_map()
     for (const std::string &header : headers_list) {
         std::regex_search(header, matcher, re);
         if (!matcher.empty()) {
-            auto pair = std::pair<std::string, std::string>(matcher.str(1), matcher.str(2));
+            std::string first = cmd::string_utils::to_lower(matcher.str(1));
+            auto pair = std::pair<std::string, std::string>(first, matcher.str(2));
             headers_map.insert(pair);
         }
     }
@@ -122,7 +119,7 @@ void cmd::http_response::check_body_method()
 
 void cmd::http_response::check_content_length()
 {
-    auto range = headers_map.equal_range("Content-Length");
+    auto range = headers_map.equal_range("content-length");
     for (auto it = range.first; it != range.second; ++it) {
         auto len = static_cast<size_t>(std::stoi(it->second));
         if (len != length) {
@@ -137,10 +134,9 @@ void cmd::http_response::check_content_length()
 
 void cmd::http_response::check_transfer_encoding()
 {
-    auto range = headers_map.equal_range("Transfer-Encoding");
+    auto range = headers_map.equal_range("transfer-encoding");
     for (auto it = range.first; it != range.second; ++it) {
-        // Ignoring
-        if (contains(it->second, "chunked"))
+        if (it->second.find("chunked") != std::string::npos)
             type = body_type::CHUNKED;
     }
     if (type == body_type::CHUNKED) {
@@ -199,9 +195,9 @@ void cmd::http_response::do_read_all(cmd::stream &s)
 
 void cmd::http_response::check_connection_close(cmd::stream &s)
 {
-    auto range = headers_map.equal_range("Connection");
+    auto range = headers_map.equal_range("connection");
     for (auto it = range.first; it != range.second; ++it) {
-        if (contains(it->second, "close")) {
+        if (it->second.find("close") != std::string::npos) {
             cmd::socket *sock = s.get_sock();
             std::string host = sock->get_host();
             int port = sock->get_port();

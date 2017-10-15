@@ -1,6 +1,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <cstring>
+#include <string>
 
 #include "server_socket.h"
 
@@ -9,7 +10,8 @@ int cmd::server_socket::bind_server_socket(int port)
     int sock_fd = -1;
     struct addrinfo *addr;
 
-    struct addrinfo hints {};
+    struct addrinfo hints {
+    };
     std::memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;      // Accept IPv4 and IPv6
     hints.ai_socktype = SOCK_STREAM;  // Duplex connection (TCP probably)

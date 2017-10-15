@@ -20,7 +20,7 @@ public:
     virtual int get_port() = 0;
     virtual std::string get_host() = 0;
 
-    typedef std::shared_ptr<cmd::socket> ptr;
+    using ptr = std::shared_ptr<cmd::socket>;
 };
 }  // namespace cmd
 

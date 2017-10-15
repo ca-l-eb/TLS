@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Wextra")
 
 project(cmdsock)
 
@@ -14,6 +15,8 @@ set(SOURCE_FILES
     src/http_pool.cc
     src/http_request.cc
     src/http_response.cc
+    src/resource_parser.cc
+    src/resource_parser.h
     src/server_socket.cc
     src/ssl_manager.cc
     src/stream.cc
@@ -23,28 +26,28 @@ set(SOURCE_FILES
     src/tls_socket.cc
     src/tokenizer.cc
     src/websocket.cc
-    src/resource_parser.cc
-    src/resource_parser.h)
+)
 
 set(HEADER_FILES
     src/base64.h
     src/http_pool.h
     src/http_request.h
     src/http_response.h
+    src/resource_parser.cc
+    src/resource_parser.h
     src/server_socket.h
     src/socket.h
     src/ssl_manager.h
     src/stream.h
+    src/string_utils.h
     src/tcp_server.h
     src/tcp_socket.h
     src/tls_server.h
     src/tls_socket.h
     src/tokenizer.h
     src/websocket.h
-    src/resource_parser.cc
-    src/resource_parser.h)
+)
 
 add_library(cmdsock SHARED ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(cmdsock PUBLIC ${OPENSSL_INCLUDE_DIR} src)
 target_link_libraries(cmdsock ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
-set_target_properties(cmdsock PROPERTIES COMPILE_FLAGS "-g -Wall -pedantic")

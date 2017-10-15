@@ -1,8 +1,8 @@
+#include <http_pool.h>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <thread>
-#include <http_pool.h>
 
 #include "http_request.h"
 #include "ssl_manager.h"

@@ -6,7 +6,7 @@
 #include "tls_socket.h"
 
 cmd::http_request::http_request(cmd::stream &stream)
-    : stream{stream}, request_method{"GET"}, resource{"/"}
+    : request_method{"GET"}, resource{"/"}, stream{stream}
 {
     host = stream.get_sock()->get_host();
     // Set Host header because most servers require it
@@ -51,8 +51,7 @@ void cmd::http_request::connect()
 
 cmd::http_response cmd::http_request::response()
 {
-    http_response response{stream};
-    return response;
+    return http_response{stream};
 }
 
 void cmd::http_request::set_resource(const std::string &resource)
