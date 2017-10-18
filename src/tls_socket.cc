@@ -3,6 +3,7 @@
 
 #include <openssl/err.h>
 
+#include "exceptions.h"
 #include "ssl_manager.h"
 #include "tls_socket.h"
 
@@ -11,7 +12,7 @@ static void throw_error_info(const std::string &msg)
     auto error = ERR_get_error();
     if (error != 0) {
         std::string error_string = std::string(ERR_error_string(error, nullptr));
-        throw std::runtime_error(msg + "::" + error_string);
+        throw cmd::ssl_exception(msg + "::" + error_string);
     }
 }
 
@@ -66,7 +67,7 @@ void cmd::tls_socket::connect(const std::string &host, int port)
 
     long verified = SSL_get_verify_result(ssl);
     if (verified != X509_V_OK)
-        throw std::runtime_error("Could not verify certificate for " + host);
+        throw cmd::ssl_exception("Could not verify certificate for " + host);
 }
 
 void cmd::tls_socket::close()

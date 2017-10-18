@@ -49,8 +49,8 @@ class socket
 {
 public:
     socket(const std::string &resource, cmd::stream &stream);
-    socket(const socket &) = delete;
-    socket &operator=(const socket &) = delete;
+    //    socket(const socket &) = delete;
+    //    socket &operator=(const socket &) = delete;
     ~socket();
     void connect();
     void close();
@@ -58,6 +58,7 @@ public:
     int send(const void *buffer, size_t size);
     cmd::websocket::frame next_frame();
     std::vector<unsigned char> next_message();
+    void next_message(std::vector<unsigned char> &buf);
 
 private:
     cmd::stream stream;

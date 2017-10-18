@@ -1,5 +1,6 @@
 #include <regex>
 
+#include "exceptions.h"
 #include "http_pool.h"
 #include "http_request.h"
 #include "tcp_socket.h"
@@ -42,11 +43,14 @@ void cmd::http_request::connect()
     } else {
         msg += "\r\n";
     }
-    stream.write(msg);
+    auto wrote = stream.write(msg);
     headers.clear();           // Clear headers for next connect()
     set_header("Host", host);  // Reset Host
     resource = "/";            // Default resource
     body = "";                 // Clear body
+
+    if (wrote != msg.size())
+        throw cmd::http_request_exception("Could not send entire HTTP request");
 }
 
 cmd::http_response cmd::http_request::response()

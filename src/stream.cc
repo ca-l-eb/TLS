@@ -63,19 +63,20 @@ size_t cmd::stream::read(std::string &s, size_t amount)
 size_t cmd::stream::read(void *buf, size_t amount)
 {
     size_t read = 0;
+    char *c = reinterpret_cast<char *>(buf);
     while (has_more()) {
         auto remaining = static_cast<size_t>(remaining_in_buffer);
         if (remaining >= amount) {
-            std::memcpy(buf, buf_ptr, amount);
+            std::memcpy(c, buf_ptr, amount);
             remaining_in_buffer -= amount;
             buf_ptr += amount;
             read += amount;
             break;
         } else {
-            std::memcpy(buf, buf_ptr, remaining);
+            std::memcpy(c, buf_ptr, remaining);
             amount -= remaining_in_buffer;
             read += remaining_in_buffer;
-            buf += remaining_in_buffer;
+            c += remaining_in_buffer;
             remaining_in_buffer = 0;
         }
     }

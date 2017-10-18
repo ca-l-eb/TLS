@@ -1,11 +1,11 @@
 #include <openssl/sha.h>
 #include <chrono>
 #include <cmath>
-#include <exception>
 #include <map>
 #include <random>
 
 #include "base64.h"
+#include "exceptions.h"
 #include "http_pool.h"
 #include "http_request.h"
 #include "tcp_socket.h"
@@ -61,7 +61,7 @@ void cmd::websocket::socket::check_websocket_upgrade(const std::string &expect,
 {
     if (response.status_code() != 101) {
         // No version renegotiation. We only support WebSocket v13
-        throw std::runtime_error(
+        throw cmd::websocket_exception(
             "Server did not accept WebSocket upgrade: " + std::to_string(response.status_code()) +
             " " + response.status_message());
     }
@@ -69,9 +69,9 @@ void cmd::websocket::socket::check_websocket_upgrade(const std::string &expect,
     auto &headers_map = response.headers();
     auto it = headers_map.find("sec-websocket-accept");
     if (it == headers_map.end())
-        throw std::runtime_error("No Sec-WebSocket-Accept found");
+        throw cmd::websocket_exception("No Sec-WebSocket-Accept found");
     if (it->second != expect)
-        throw std::runtime_error("Got invalid Sec-WebSocket-Accept");
+        throw cmd::websocket_exception("Got invalid Sec-WebSocket-Accept");
 }
 
 int cmd::websocket::socket::send(const void *buffer, size_t size)
@@ -190,19 +190,19 @@ cmd::websocket::frame cmd::websocket::socket::next_frame()
             // without any reads in between)
             return frame;
         }
-        throw std::runtime_error("Could not read next WebSocket frame: no data");
+        throw cmd::websocket_exception("Could not read next WebSocket frame: no data");
     }
 
     const uint8_t reserved_flags = 0x70;
     const uint8_t mask_bit = 0x80;
 
     if (tmp[0] & reserved_flags) {
-        throw std::runtime_error("Unexpected extension flag");
+        throw cmd::websocket_exception("Unexpected extension flag");
     }
     if (tmp[1] & mask_bit) {
         // ERROR: server sent masked data
         close(websocket::status_code::protocol_error);
-        throw std::runtime_error("WebSocket protocol error: server sent masked data");
+        throw cmd::websocket_exception("WebSocket protocol error: server sent masked data");
     }
 
     auto fin = static_cast<bool>(tmp[0] & 0x80);
@@ -215,7 +215,7 @@ cmd::websocket::frame cmd::websocket::socket::next_frame()
         // Next 2 bytes are length
         read = stream.read(tmp, 2);
         if (read != 2) {
-            throw std::runtime_error("Could not read WebSocket frame length");
+            throw cmd::websocket_exception("Could not read WebSocket frame length");
         }
         // Convert next 2 bytes to network order
         len = (tmp[0] << 8) | tmp[1];
@@ -223,7 +223,7 @@ cmd::websocket::frame cmd::websocket::socket::next_frame()
         // Next 8 bytes are length
         read = stream.read(tmp, 8);
         if (read != 8) {
-            throw std::runtime_error("Could not read WebSocket frame length");
+            throw cmd::websocket_exception("Could not read WebSocket frame length");
         }
         // Convert next 8 bytes from network order
         len = (static_cast<uint64_t>(tmp[7]) << 56) | (static_cast<uint64_t>(tmp[6]) << 48) |
@@ -240,8 +240,8 @@ cmd::websocket::frame cmd::websocket::socket::next_frame()
         read = stream.read(frame.data.data(), len);
 
     if (read != len) {
-        throw std::runtime_error("Could not read entire WebSocket frame: expected " +
-                                 std::to_string(len) + " but read " + std::to_string(read));
+        throw cmd::websocket_exception("Could not read entire WebSocket frame: expected " +
+                                       std::to_string(len) + " but read " + std::to_string(read));
     }
 
     switch (op) {
@@ -278,17 +278,25 @@ void cmd::websocket::socket::pong(std::vector<unsigned char> &msg)
 
 std::vector<unsigned char> cmd::websocket::socket::next_message()
 {
-    std::vector<unsigned char> message;
+    std::vector<unsigned char> buf;
+    next_message(buf);
+    return buf;
+}
+
+// Fill buf with the next message, resizing if necessary
+void cmd::websocket::socket::next_message(std::vector<unsigned char> &buf)
+{
     websocket::frame f = next_frame();
     websocket::opcode code = f.op;
+    buf.clear();
     if (code == websocket::opcode::text || code == websocket::opcode::binary)
-        message.insert(message.end(), f.data.begin(), f.data.end());
+        buf.insert(buf.end(), f.data.begin(), f.data.end());
 
     while (!f.fin) {
         f = next_frame();
         switch (f.op) {
             case websocket::opcode::continuation:
-                message.insert(message.end(), f.data.begin(), f.data.end());
+                buf.insert(buf.end(), f.data.begin(), f.data.end());
                 break;
             case websocket::opcode::text:
             case websocket::opcode::binary:
@@ -304,7 +312,6 @@ std::vector<unsigned char> cmd::websocket::socket::next_message()
                 close(websocket::status_code::protocol_error);
         }
     }
-    return message;
 }
 
 void cmd::websocket::socket::close()

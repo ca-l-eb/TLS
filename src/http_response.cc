@@ -1,5 +1,6 @@
 #include <regex>
 
+#include "exceptions.h"
 #include "http_pool.h"
 #include "http_response.h"
 #include "string_utils.h"
@@ -80,12 +81,12 @@ void cmd::http_response::check_response_code()
 {
     static std::regex re{R"(^(HTTP/\S+) (\d{3}) (.*)$)"};
     if (headers_list.empty())
-        throw std::runtime_error("Did not receive HTTP response");
+        throw cmd::http_response_exception("Did not receive HTTP response");
 
     std::smatch matcher;
     std::regex_search(headers_list[0], matcher, re);
     if (matcher.empty())
-        throw std::runtime_error("Invalid HTTP response");
+        throw cmd::http_response_exception("Invalid HTTP response");
 
     http_version = matcher.str(1);
     status = std::stoi(matcher.str(2));
@@ -124,7 +125,7 @@ void cmd::http_response::check_content_length()
         auto len = static_cast<size_t>(std::stoi(it->second));
         if (len != length) {
             if (type == body_type::LENGTH) {
-                throw std::runtime_error("Got conflicting Content-Length headers");
+                throw cmd::http_response_exception("Got conflicting Content-Length headers");
             }
         }
         length = len;
@@ -155,12 +156,12 @@ void cmd::http_response::do_chunked(cmd::stream &s)
             break;
         ssize_t read = s.read(body_str, length);
         if (read != static_cast<ssize_t>(length))
-            throw std::runtime_error("Got invalid chunk length");
+            throw cmd::http_response_exception("Got invalid chunk length");
         line.clear();
         s.next_line(line);
         if (line.length() != 0)
-            throw std::runtime_error("Got invalid chunk terminator. Expected CRLF but got: " +
-                                     line);
+            throw cmd::http_response_exception(
+                "Got invalid chunk terminator. Expected CRLF but got: " + line);
     }
 
     // Check trailing headers
@@ -182,7 +183,7 @@ void cmd::http_response::do_content_length(cmd::stream &s)
     if (read != length) {
         std::string err_msg = "Could not read entire Content-Length. Got " + std::to_string(read) +
                               " bytes but expected " + std::to_string(length);
-        throw std::runtime_error(err_msg);
+        throw cmd::http_response_exception(err_msg);
     }
 }
 

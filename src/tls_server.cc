@@ -2,12 +2,12 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
-#include <exception>
 
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include <memory>
 
+#include "exceptions.h"
 #include "ssl_manager.h"
 #include "tls_server.h"
 #include "tls_socket.h"
@@ -22,13 +22,13 @@ cmd::tls_server::tls_server(const std::string &cert, const std::string &privkey)
     if (SSL_CTX_use_certificate_file(context, cert.c_str(), SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
         SSL_CTX_free(context);
-        throw std::runtime_error("Error using certificate: " + cert);
+        throw cmd::ssl_exception("Error using certificate: " + cert);
     }
 
     if (SSL_CTX_use_PrivateKey_file(context, privkey.c_str(), SSL_FILETYPE_PEM) <= 0) {
         ERR_print_errors_fp(stderr);
         SSL_CTX_free(context);
-        throw std::runtime_error("Error using private key: " + privkey);
+        throw cmd::ssl_exception("Error using private key: " + privkey);
     }
 }
 
@@ -43,14 +43,14 @@ cmd::socket::ptr cmd::tls_server::accept()
 {
     int client_fd = ::accept(sock_fd, nullptr, nullptr);
     if (client_fd == -1)
-        throw std::runtime_error("Accept failed: " + std::string(std::strerror(errno)));
+        throw cmd::socket_exception("Accept failed: " + std::string(std::strerror(errno)));
 
     SSL *ssl = SSL_new(context);
     SSL_set_fd(ssl, client_fd);
 
     if (SSL_accept(ssl) <= 0) {
         ERR_print_errors_fp(stderr);
-        throw std::runtime_error("Could not complete handshake");
+        throw cmd::ssl_exception("Could not complete handshake");
     }
     return std::make_shared<cmd::tls_socket>(client_fd, ssl);
 }
@@ -75,7 +75,7 @@ void cmd::tls_server::listen(int waiting)
 {
     int ret = ::listen(sock_fd, waiting);
     if (ret != 0)
-        throw std::runtime_error(std::strerror(errno));
+        throw cmd::socket_exception(std::strerror(errno));
 }
 
 int cmd::tls_server::get_port()

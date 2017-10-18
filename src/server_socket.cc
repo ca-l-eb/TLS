@@ -3,6 +3,7 @@
 #include <cstring>
 #include <string>
 
+#include "exceptions.h"
 #include "server_socket.h"
 
 int cmd::server_socket::bind_server_socket(int port)
@@ -20,8 +21,8 @@ int cmd::server_socket::bind_server_socket(int port)
     const char *port_str = std::to_string(port).c_str();
     int ret = getaddrinfo(nullptr, port_str, &hints, &addr);
     if (ret != 0) {
-        throw std::runtime_error("Could not create server socket: " +
-                                 std::string(gai_strerror(ret)));
+        throw cmd::socket_exception("Could not create server socket: " +
+                                    std::string(gai_strerror(ret)));
     }
 
     auto it = addr;
@@ -41,6 +42,6 @@ int cmd::server_socket::bind_server_socket(int port)
         freeaddrinfo(addr);
 
     if (it == nullptr)
-        throw std::runtime_error("Could not bind socket to port " + std::to_string(port));
+        throw cmd::socket_exception("Could not bind socket to port " + std::to_string(port));
     return sock_fd;
 }

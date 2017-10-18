@@ -46,7 +46,7 @@ set(HEADER_FILES
     src/tls_socket.h
     src/tokenizer.h
     src/websocket.h
-)
+    src/exceptions.h)
 
 add_library(cmdsock SHARED ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(cmdsock PUBLIC ${OPENSSL_INCLUDE_DIR} src)

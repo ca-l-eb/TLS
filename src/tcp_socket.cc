@@ -1,10 +1,10 @@
 #include <netdb.h>
 #include <unistd.h>
-#include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
 
+#include "exceptions.h"
 #include "tcp_socket.h"
 
 cmd::tcp_socket::tcp_socket() : sock_fd{0}, port{-1}, host{} {}
@@ -76,7 +76,7 @@ void cmd::tcp_socket::connect_host(const std::string &host, int port)
 
     int ret = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr);
     if (ret != 0) {
-        throw std::runtime_error("Error getaddrinfo: " + std::string(gai_strerror(ret)));
+        throw cmd::socket_exception("Error getaddrinfo: " + std::string(gai_strerror(ret)));
     }
 
     // Loop through connections trying each
@@ -96,5 +96,5 @@ void cmd::tcp_socket::connect_host(const std::string &host, int port)
     freeaddrinfo(addr);
 
     if (i == nullptr)
-        throw std::runtime_error(strerror(errno));  // Could not connect
+        throw cmd::socket_exception("Could not connected to host: " + host);  // Could not connect
 }
