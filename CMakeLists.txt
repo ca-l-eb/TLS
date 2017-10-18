@@ -25,6 +25,7 @@ set(SOURCE_FILES
     src/tls_server.cc
     src/tls_socket.cc
     src/tokenizer.cc
+    src/udp_socket.cc
     src/websocket.cc
 )
 
@@ -45,6 +46,7 @@ set(HEADER_FILES
     src/tls_server.h
     src/tls_socket.h
     src/tokenizer.h
+    src/udp_socket.h
     src/websocket.h
     src/exceptions.h)
 
