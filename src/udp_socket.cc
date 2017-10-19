@@ -99,7 +99,6 @@ cmd::inet_addr_list::inet_addr_list(int port) : host{"localhost"}
 cmd::inet_addr_list::inet_addr_list(const std::string &host, int port) : host{host}
 {
     addrinfo hints{};
-    std::memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;      // Use IPv4 or IPv6
     hints.ai_socktype = SOCK_DGRAM;   // Request datagram
     hints.ai_protocol = IPPROTO_UDP;  // UDP
@@ -146,6 +145,16 @@ ssize_t cmd::udp_socket::send(const cmd::inet_addr &addr, const std::string &str
     return send(addr, str.c_str(), str.size(), flags);
 }
 
+ssize_t cmd::udp_socket::recv(cmd::inet_addr &addr, void *buffer, size_t size, int flags)
+{
+    return ::recvfrom(sock_fd, buffer, size, flags, addr.addr.ai_addr, &addr.addr.ai_addrlen);
+}
+
+ssize_t cmd::udp_socket::recv(cmd::inet_addr &addr, std::vector<unsigned char> &buf, int flags)
+{
+    return recv(addr, buf.data(), buf.size(), flags);
+}
+
 cmd::inet_addr::inet_addr() : addr{}, storage{}
 {
     addr.ai_addr = &storage;
@@ -183,7 +192,6 @@ std::string cmd::inet_addr::to_string()
     if (addr.ai_addr->sa_family == AF_INET) {
         auto *s = (sockaddr_in *) addr.ai_addr;
         ret = inet_ntop(AF_INET, &s->sin_addr, address_string, sizeof(address_string));
-
     } else if (addr.ai_addr->sa_family == AF_INET6) {
         auto *s = (sockaddr_in6 *) addr.ai_addr;
         ret = inet_ntop(AF_INET6, &s->sin6_addr, address_string, sizeof(address_string));
@@ -195,11 +203,11 @@ std::string cmd::inet_addr::to_string()
 
 int cmd::inet_addr::get_port()
 {
-    int port;
+    int port = -1;
     if (addr.ai_addr->sa_family == AF_INET) {
         auto *s = (sockaddr_in *) addr.ai_addr;
         port = ntohs(s->sin_port);
-    } else {  // AF_INET6
+    } else if (addr.ai_addr->sa_family == AF_INET6) {
         auto *s = (sockaddr_in6 *) addr.ai_addr;
         port = ntohs(s->sin6_port);
     }

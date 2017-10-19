@@ -69,6 +69,8 @@ public:
     void close();
     ssize_t send(const inet_addr &addr, const void *buffer, size_t size, int flags = 0);
     ssize_t send(const inet_addr &addr, const std::string &str, int flags = 0);
+    ssize_t recv(inet_addr &addr, void *buffer, size_t size, int flags = 0);
+    ssize_t recv(inet_addr &addr, std::vector<unsigned char> &buf, int flags = 0);
 
 private:
     int sock_fd;

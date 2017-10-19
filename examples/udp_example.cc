@@ -26,12 +26,15 @@ int main(int argc, char *argv[])
                     break;
                 buffer[ret] = '\0';
                 std::cout << buffer << "\n";
+                ret = listener.send(other, buffer, ret);
+                std::cout << "Echoed back : " << ret << " bytes\n";
             }
 
         } else {
             // Lookup methods for connecting to argv[1] on port 5000
             auto addresses = cmd::inet_addr_list{argv[1], 5000};
             auto address = cmd::inet_addr{*addresses.addrs};
+            auto ignore = cmd::inet_addr{};
             cmd::udp_socket sender;
 
             std::string line;
@@ -43,6 +46,12 @@ int main(int argc, char *argv[])
                 std::cout << "sent " << ret << " bytes\n";
                 if (ret == -1)
                     break;
+                ret = sender.recv(ignore, buffer, sizeof(buffer));
+                std::cout << "read back " << ret << "bytes:\n";
+                if (ret >= 0) {
+                    buffer[ret] = '\0';
+                    std::cout << buffer << "\n";
+                }
             }
         }
     } catch (std::exception &e) {
