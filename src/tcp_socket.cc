@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "exceptions.h"
+#include "inet_addr.h"
 #include "tcp_socket.h"
 
 cmd::tcp_socket::tcp_socket() : sock_fd{0}, port{-1}, host{} {}
@@ -67,34 +68,20 @@ std::string cmd::tcp_socket::get_host()
 
 void cmd::tcp_socket::connect_host(const std::string &host, int port)
 {
-    struct addrinfo *addr;
-    struct addrinfo hints {
-    };
-    std::memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;      // Use IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM;  // Request reliable, duplex connection (probably TCP)
-
-    int ret = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr);
-    if (ret != 0) {
-        throw cmd::socket_exception("Error getaddrinfo: " + std::string(gai_strerror(ret)));
-    }
+    cmd::inet_resolver resolver{host.c_str(), port, inet_proto ::tcp, inet_family::unspecified};
 
     // Loop through connections trying each
-    auto i = addr;
-    for (; i != nullptr; i = i->ai_next) {
+    for (auto &address : resolver.addresses) {
         // Create an unbound socket for the connection
-        sock_fd = ::socket(i->ai_family, i->ai_socktype, i->ai_protocol);
+        sock_fd =
+            ::socket(address.addr.ai_family, address.addr.ai_socktype, address.addr.ai_protocol);
         if (sock_fd == -1)
             continue;
 
-        if (::connect(sock_fd, i->ai_addr, i->ai_addrlen) != -1)
+        if (::connect(sock_fd, address.addr.ai_addr, address.addr.ai_addrlen) != -1)
             break;  // Success!
 
         ::close(sock_fd);  // close, try next
     }
-
-    freeaddrinfo(addr);
-
-    if (i == nullptr)
-        throw cmd::socket_exception("Could not connected to host: " + host);  // Could not connect
+    throw cmd::socket_exception("Could not connected to host: " + host);  // Could not connect
 }

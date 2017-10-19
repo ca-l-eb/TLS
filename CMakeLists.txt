@@ -27,7 +27,7 @@ set(SOURCE_FILES
     src/tokenizer.cc
     src/udp_socket.cc
     src/websocket.cc
-)
+    src/inet_addr.cc)
 
 set(HEADER_FILES
     src/base64.h
@@ -48,7 +48,8 @@ set(HEADER_FILES
     src/tokenizer.h
     src/udp_socket.h
     src/websocket.h
-    src/exceptions.h)
+    src/exceptions.h
+    src/inet_addr.h)
 
 add_library(cmdsock SHARED ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(cmdsock PUBLIC ${OPENSSL_INCLUDE_DIR} src)

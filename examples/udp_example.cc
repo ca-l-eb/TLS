@@ -12,30 +12,72 @@ int main(int argc, char *argv[])
         ssize_t ret;
 
         if (argc == 1) {
-            cmd::bound_udp_socket listener{cmd::inet_addr_list{5000}};
-            auto other = listener.get_address();
-            std::cout << "Connected at " << other.to_string() << " on port " << other.get_port()
-                      << "\n";
+            // Create and bind udp socket to port 5000
+            cmd::bound_udp_socket listener{5000, cmd::inet_family::ipv4};
+            auto at = listener.get_address();
+            cmd::inet_addr client;
+
+            std::cout << "Bound at " << at.to_string() << " on port " << at.get_port() << "\n";
 
             while (true) {
-                ret = listener.recv(other, buffer, sizeof(buffer));
-                std::cout << "Received " << ret << " bytes from " << other.to_string()
-                          << " on port " << other.get_port() << "\n";
+                ret = listener.recv(client, buffer, sizeof(buffer));
+                std::cout << "Received " << ret << " bytes from " << client.to_string()
+                          << " on port " << client.get_port() << "\n";
 
-                if (ret == -1)
+                if (ret == -1) {
+                    perror("recv failed");
                     break;
-                buffer[ret] = '\0';
-                std::cout << buffer << "\n";
-                ret = listener.send(other, buffer, ret);
+                }
+                std::cout.write(buffer, ret);
+                std::cout << "\n";
+                ret = listener.send(client, buffer, ret);
                 std::cout << "Echoed back : " << ret << " bytes\n";
+                if (ret == -1) {
+                    perror("echo back failed");
+                }
             }
 
         } else {
-            // Lookup methods for connecting to argv[1] on port 5000
-            auto addresses = cmd::inet_addr_list{argv[1], 5000};
-            auto address = cmd::inet_addr{*addresses.addrs};
-            auto ignore = cmd::inet_addr{};
-            cmd::udp_socket sender;
+            // Lookup methods for connecting to argv[1] on port 5000 using udp
+            cmd::inet_resolver options{argv[1], 5000, cmd::inet_proto::udp, cmd::inet_family::ipv4};
+
+            // Let's just take the first of the available methods
+            cmd::inet_addr address = options.addresses.front();
+            for (auto &a : options.addresses) {
+                std::cout << a.to_string() << " port " << a.get_port() << " ";
+                switch (a.protocol()) {
+                    case cmd::inet_proto::udp:
+                        std::cout << "udp ";
+                        break;
+                    case cmd::inet_proto::tcp:
+                        std::cout << "tcp ";
+                        break;
+                    default:
+                        std::cout << "unknown type: " << (int) a.protocol();
+                }
+                switch (a.family()) {
+                    case cmd::inet_family::unspecified:
+                        std::cout << "unspecified protocol ";
+                        break;
+                    case cmd::inet_family::ipv4:
+                        std::cout << "ipv4 ";
+                        break;
+                    case cmd::inet_family::ipv6:
+                        std::cout << "ipv6 ";
+                        break;
+                    default:
+                        std::cout << "unknown protocol: " << (int) a.family();
+                }
+                std::cout << "\n";
+            }
+
+            std::cout << "Sending datagrams to " << address.to_string() << " on port "
+                      << address.get_port() << "\n";
+
+            // Create an unbound udp socket using ipv4. it can send and receive messages, but you
+            // shouldn't really expect to read any messages until you send some because the port is
+            // not bound (outside world doesn't know where to find it).
+            cmd::udp_socket sender{cmd::inet_family::ipv4};
 
             std::string line;
             while (true) {
@@ -44,13 +86,18 @@ int main(int argc, char *argv[])
                     break;
                 ret = sender.send(address, line);
                 std::cout << "sent " << ret << " bytes\n";
-                if (ret == -1)
+                if (ret == -1) {
+                    perror("send failed");
                     break;
-                ret = sender.recv(ignore, buffer, sizeof(buffer));
-                std::cout << "read back " << ret << "bytes:\n";
+                }
+                // Read and ignore who sent it
+                ret = sender.recv(buffer, sizeof(buffer));
+                std::cout << "read back " << ret << " bytes:\n";
                 if (ret >= 0) {
-                    buffer[ret] = '\0';
-                    std::cout << buffer << "\n";
+                    std::cout.write(buffer, ret);
+                    std::cout << "\n";
+                } else {
+                    perror("read failed");
                 }
             }
         }
