@@ -56,9 +56,6 @@ int main(int argc, char *argv[])
                         std::cout << "unknown type: " << (int) a.protocol();
                 }
                 switch (a.family()) {
-                    case cmd::inet_family::unspecified:
-                        std::cout << "unspecified protocol ";
-                        break;
                     case cmd::inet_family::ipv4:
                         std::cout << "ipv4 ";
                         break;

@@ -31,9 +31,10 @@ cmd::bound_udp_socket::~bound_udp_socket()
 
 void cmd::bound_udp_socket::close()
 {
-    if (sock_fd >= 0)
+    if (sock_fd >= 0) {
         ::close(sock_fd);
-    sock_fd = -1;
+        sock_fd = -1;
+    }
 }
 
 ssize_t cmd::bound_udp_socket::send(const cmd::inet_addr &addr, const void *buffer, size_t size,
