@@ -1,6 +1,5 @@
 #include <netdb.h>
 #include <chrono>
-#include <csignal>
 #include <iostream>
 
 #include "udp_socket.h"
@@ -12,8 +11,12 @@ int main(int argc, char *argv[])
         ssize_t ret;
 
         if (argc == 1) {
-            // Create and bind udp socket to port 5000
-            cmd::bound_udp_socket listener{5000, cmd::inet_family::ipv4};
+            cmd::udp_socket listener{cmd::inet_family::ipv4};
+
+            // Figure out how to bind to local udp address 5000 over ipv4
+            cmd::inet_resolver local{nullptr, 5000, cmd::inet_proto::udp, cmd::inet_family::ipv4};
+            listener.bind(local.addresses.front());
+
             auto at = listener.get_address();
             cmd::inet_addr client;
 

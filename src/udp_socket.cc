@@ -4,76 +4,7 @@
 #include "exceptions.h"
 #include "udp_socket.h"
 
-cmd::bound_udp_socket::bound_udp_socket(int port, inet_family family) : sock_fd{-1}
-{
-    inet_resolver list{nullptr, port, inet_proto::udp, family};
-    // Loop through each address trying each
-    for (auto &address : list.addresses) {
-        sock_fd =
-            ::socket(address.addr.ai_family, address.addr.ai_socktype, address.addr.ai_protocol);
-        if (sock_fd == -1)
-            continue;
-
-        if (::bind(sock_fd, address.addr.ai_addr, address.addr.ai_addrlen) != -1) {
-            addr = address;
-            return;  // Success!
-        }
-
-        ::close(sock_fd);  // close, try next
-    }
-    throw cmd::socket_exception("Could bind socket to host: " + list.host);
-}
-
-cmd::bound_udp_socket::~bound_udp_socket()
-{
-    close();
-}
-
-void cmd::bound_udp_socket::close()
-{
-    if (sock_fd >= 0) {
-        ::close(sock_fd);
-        sock_fd = -1;
-    }
-}
-
-ssize_t cmd::bound_udp_socket::send(const cmd::inet_addr &addr, const void *buffer, size_t size,
-                                    int flags)
-{
-    return sendto(sock_fd, buffer, size, flags, addr.addr.ai_addr, addr.addr.ai_addrlen);
-}
-
-ssize_t cmd::bound_udp_socket::send(const cmd::inet_addr &addr, const std::string &str, int flags)
-{
-    return send(addr, str.c_str(), str.size(), flags);
-}
-
-ssize_t cmd::bound_udp_socket::send(const void *buffer, size_t size, int flags)
-{
-    return send(addr, buffer, size, flags);
-}
-
-ssize_t cmd::bound_udp_socket::send(const std::string &str, int flags)
-{
-    return send(addr, str.c_str(), str.size(), flags);
-}
-
-ssize_t cmd::bound_udp_socket::recv(void *buffer, size_t size, int flags)
-{
-    return ::recv(sock_fd, buffer, size, flags);
-}
-
-ssize_t cmd::bound_udp_socket::recv(cmd::inet_addr &from, void *buffer, size_t size, int flags)
-{
-    return ::recvfrom(sock_fd, buffer, size, flags, from.addr.ai_addr, &from.addr.ai_addrlen);
-}
-
-const cmd::inet_addr cmd::bound_udp_socket::get_address() const
-{
-    return addr;
-}
-
-cmd::udp_socket::udp_socket(cmd::inet_family family) : sock_fd{-1}
+cmd::udp_socket::udp_socket(inet_family family) : sock_fd{-1}
 {
     switch (family) {
         case inet_family::ipv4:
@@ -97,6 +28,17 @@ cmd::udp_socket::~udp_socket()
     close();
 }
 
+void cmd::udp_socket::bind(inet_addr &address)
+{
+    int ret = ::bind(sock_fd, address.addr.ai_addr, address.addr.ai_addrlen);
+    if (ret != -1) {
+        addr = address;
+        return;
+    }
+    throw cmd::socket_exception{"Could not bind addresses to UDP socket: " +
+                                std::string(std::strerror(ret))};
+}
+
 void cmd::udp_socket::close()
 {
     if (sock_fd >= 0) {
@@ -108,7 +50,7 @@ void cmd::udp_socket::close()
 ssize_t cmd::udp_socket::send(const cmd::inet_addr &addr, const void *buffer, size_t size,
                               int flags)
 {
-    return ::sendto(sock_fd, buffer, size, flags, addr.addr.ai_addr, addr.addr.ai_addrlen);
+    return sendto(sock_fd, buffer, size, flags, addr.addr.ai_addr, addr.addr.ai_addrlen);
 }
 
 ssize_t cmd::udp_socket::send(const cmd::inet_addr &addr, const std::string &str, int flags)
@@ -116,12 +58,27 @@ ssize_t cmd::udp_socket::send(const cmd::inet_addr &addr, const std::string &str
     return send(addr, str.c_str(), str.size(), flags);
 }
 
-ssize_t cmd::udp_socket::recv(cmd::inet_addr &addr, void *buffer, size_t size, int flags)
+ssize_t cmd::udp_socket::send(const void *buffer, size_t size, int flags)
 {
-    return ::recvfrom(sock_fd, buffer, size, flags, addr.addr.ai_addr, &addr.addr.ai_addrlen);
+    return send(addr, buffer, size, flags);
+}
+
+ssize_t cmd::udp_socket::send(const std::string &str, int flags)
+{
+    return send(addr, str.c_str(), str.size(), flags);
 }
 
 ssize_t cmd::udp_socket::recv(void *buffer, size_t size, int flags)
 {
-    return ::recvfrom(sock_fd, buffer, size, flags, nullptr, nullptr);
+    return ::recv(sock_fd, buffer, size, flags);
+}
+
+ssize_t cmd::udp_socket::recv(cmd::inet_addr &from, void *buffer, size_t size, int flags)
+{
+    return ::recvfrom(sock_fd, buffer, size, flags, from.addr.ai_addr, &from.addr.ai_addrlen);
+}
+
+const cmd::inet_addr cmd::udp_socket::get_address() const
+{
+    return addr;
 }
