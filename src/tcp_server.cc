@@ -7,7 +7,7 @@
 #include "tcp_server.h"
 #include "tcp_socket.h"
 
-cmd::tcp_server::tcp_server() : sock_fd{-1}, port{-1} {}
+cmd::tcp_server::tcp_server(cmd::inet_family family) : sock_fd{-1}, port{-1}, family{family} {}
 
 cmd::tcp_server::~tcp_server()
 {
@@ -28,7 +28,7 @@ void cmd::tcp_server::bind(int port)
     if (sock_fd >= 0)
         return;
 
-    sock_fd = bind_server_socket(port);
+    sock_fd = bind_server_socket(port, family);
     this->port = port;
 }
 

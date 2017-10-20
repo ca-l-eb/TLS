@@ -7,10 +7,10 @@
 #include "inet_addr.h"
 #include "server_socket.h"
 
-int cmd::server_socket::bind_server_socket(int port)
+int cmd::server_socket::bind_server_socket(int port, cmd::inet_family family)
 {
     int sock_fd = -1;
-    cmd::inet_resolver resolver{nullptr, port, inet_proto::tcp, inet_family::unspecified};
+    cmd::inet_resolver resolver{nullptr, port, inet_proto::tcp, family};
 
     for (auto &address : resolver.addresses) {
         sock_fd =

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "inet_addr.h"
 #include "socket.h"
 
 namespace cmd
@@ -14,8 +15,7 @@ namespace cmd
 class tcp_socket : public cmd::socket
 {
 public:
-    tcp_socket();
-
+    explicit tcp_socket(cmd::inet_family family = cmd::inet_family::unspecified);
     explicit tcp_socket(int fd);
     tcp_socket(const tcp_socket &) = delete;
     tcp_socket &operator=(const tcp_socket &) = delete;
@@ -31,10 +31,11 @@ public:
     std::string get_host() override;
 
 private:
-    void connect_host(const std::string &host, int port);
+    void connect_host(const std::string &host, int port, cmd::inet_family family);
     int sock_fd;
     int port;
     std::string host;
+    cmd::inet_family family;
 };
 }  // namespace cmd
 

@@ -16,7 +16,7 @@ static void throw_error_info(const std::string &msg)
     }
 }
 
-cmd::tls_socket::tls_socket()
+cmd::tls_socket::tls_socket(cmd::inet_family family) : family{family}
 {
     ssl = SSL_new(cmd::ssl_manager::get_context());
     if (ssl == nullptr)

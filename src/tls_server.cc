@@ -12,8 +12,9 @@
 #include "tls_server.h"
 #include "tls_socket.h"
 
-cmd::tls_server::tls_server(const std::string &cert, const std::string &privkey)
-    : context{nullptr}, sock_fd{-1}, port{-1}
+cmd::tls_server::tls_server(const std::string &cert, const std::string &privkey,
+                            cmd::inet_family family)
+    : context{nullptr}, sock_fd{-1}, port{-1}, family{family}
 {
     context = cmd::ssl_manager::get_server_context();
     SSL_CTX_set_ecdh_auto(context, 1);
@@ -60,7 +61,7 @@ void cmd::tls_server::bind(int port)
     if (sock_fd >= 0)
         return;
 
-    sock_fd = bind_server_socket(port);
+    sock_fd = bind_server_socket(port, family);
     this->port = port;
 }
 

@@ -1,6 +1,7 @@
 #ifndef CMD_SERVER_SOCKET_H
 #define CMD_SERVER_SOCKET_H
 
+#include "inet_addr.h"
 #include "socket.h"
 
 namespace cmd
@@ -17,7 +18,7 @@ public:
 
 protected:
     // return new socket descriptor bound to port
-    int bind_server_socket(int port);
+    int bind_server_socket(int port, cmd::inet_family family);
 };
 }  // namespace cmd
 

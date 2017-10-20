@@ -4,6 +4,7 @@
 #include <openssl/ssl.h>
 #include <string>
 
+#include "inet_addr.h"
 #include "socket.h"
 #include "ssl_manager.h"
 #include "tcp_socket.h"
@@ -13,7 +14,7 @@ namespace cmd
 class tls_socket : public cmd::socket
 {
 public:
-    tls_socket();
+    explicit tls_socket(cmd::inet_family family = cmd::inet_family::unspecified);
     tls_socket(const tls_socket &) = delete;
     tls_socket &operator=(const tls_socket &) = delete;
     tls_socket(int fd, SSL *ssl);
@@ -31,6 +32,7 @@ public:
 private:
     cmd::tcp_socket sock;
     SSL *ssl;
+    cmd::inet_family family;
 };
 }  // namespace cmd
 

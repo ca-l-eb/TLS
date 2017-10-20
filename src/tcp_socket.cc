@@ -8,7 +8,9 @@
 #include "inet_addr.h"
 #include "tcp_socket.h"
 
-cmd::tcp_socket::tcp_socket() : sock_fd{0}, port{-1}, host{} {}
+cmd::tcp_socket::tcp_socket(cmd::inet_family family) : sock_fd{0}, port{-1}, host{}, family{family}
+{
+}
 
 cmd::tcp_socket::tcp_socket(int fd) : sock_fd{fd} {}
 
@@ -19,7 +21,7 @@ cmd::tcp_socket::~tcp_socket()
 
 void cmd::tcp_socket::connect(const std::string &host, int port)
 {
-    connect_host(host, port);
+    connect_host(host, port, family);
     this->host = host;
     this->port = port;
 }
@@ -66,9 +68,9 @@ std::string cmd::tcp_socket::get_host()
     return host;
 }
 
-void cmd::tcp_socket::connect_host(const std::string &host, int port)
+void cmd::tcp_socket::connect_host(const std::string &host, int port, cmd::inet_family family)
 {
-    cmd::inet_resolver resolver{host.c_str(), port, inet_proto ::tcp, inet_family::unspecified};
+    cmd::inet_resolver resolver{host.c_str(), port, inet_proto::tcp, family};
 
     // Loop through connections trying each
     for (auto &address : resolver.addresses) {
