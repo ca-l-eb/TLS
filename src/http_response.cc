@@ -5,6 +5,8 @@
 #include "http_response.h"
 #include "string_utils.h"
 
+cmd::http_response::http_response() : status{0} {}
+
 cmd::http_response::http_response(cmd::stream &stream) : status{0}, length{0}, type{body_type::NONE}
 {
     read_response(stream);
@@ -39,13 +41,18 @@ void cmd::http_response::read_response(cmd::stream &stream)
 {
     std::string line;
 
+    // First line should be the HTTP response status line
+    stream.next_line(line);
+    check_response_status(line);
+
     // Read until we get empty line -- i.e. end of headers section
     while (true) {
         line.clear();
         stream.next_line(line);
         if (line.length() == 0)
             break;
-        headers_list.push_back(line);
+
+        add_header_to_map(line);
     }
     process_headers(stream);
 
@@ -70,45 +77,34 @@ void cmd::http_response::read_response(cmd::stream &stream)
 
 void cmd::http_response::process_headers(cmd::stream &s)
 {
-    check_response_code();
-    add_headers_to_map();
-
     check_connection_close(s);  // Note: must be called before check_body_method
     check_body_method();
 }
 
-void cmd::http_response::check_response_code()
+void cmd::http_response::check_response_status(const std::string &status_line)
 {
     static std::regex re{R"(^(HTTP/\S+) (\d{3}) (.*)$)"};
-    if (headers_list.empty())
-        throw cmd::http_response_exception("Did not receive HTTP response");
 
     std::smatch matcher;
-    std::regex_search(headers_list[0], matcher, re);
+    std::regex_search(status_line, matcher, re);
     if (matcher.empty())
-        throw cmd::http_response_exception("Invalid HTTP response");
+        throw cmd::http_response_exception("Invalid HTTP response status line");
 
     http_version = matcher.str(1);
     status = std::stoi(matcher.str(2));
     status_message_str = matcher.str(3);
-
-    // Remove this from headers_list because it isn't really a header
-    headers_list.erase(headers_list.begin());
 }
 
-void cmd::http_response::add_headers_to_map()
+void cmd::http_response::add_header_to_map(const std::string &line)
 {
     static std::regex re{R"(^(\S+):\s*(.*)$)"};
     std::smatch matcher;
-    for (const std::string &header : headers_list) {
-        std::regex_search(header, matcher, re);
-        if (!matcher.empty()) {
-            std::string first = cmd::string_utils::to_lower(matcher.str(1));
-            auto pair = std::pair<std::string, std::string>(first, matcher.str(2));
-            headers_map.insert(pair);
-        }
+    std::regex_search(line, matcher, re);
+    if (!matcher.empty()) {
+        std::string first = cmd::string_utils::to_lower(matcher.str(1));
+        auto pair = std::pair<std::string, std::string>(first, matcher.str(2));
+        headers_map.insert(pair);
     }
-    headers_list.clear();
 }
 void cmd::http_response::check_body_method()
 {
@@ -156,7 +152,7 @@ void cmd::http_response::do_chunked(cmd::stream &s)
             break;
         ssize_t read = s.read(body_str, length);
         if (read != static_cast<ssize_t>(length))
-            throw cmd::http_response_exception("Got invalid chunk length");
+            throw cmd::http_response_exception("Could not read entire chunk");
         line.clear();
         s.next_line(line);
         if (line.length() != 0)
@@ -170,11 +166,9 @@ void cmd::http_response::do_chunked(cmd::stream &s)
         s.next_line(line);
         if (line.length() == 0)  // Empty line -> DONE
             break;
-        headers_list.push_back(line);
+        // Add any trailing headers to the headers map
+        add_header_to_map(line);
     }
-
-    if (!headers_list.empty())
-        add_headers_to_map();  // Add new headers
 }
 
 void cmd::http_response::do_content_length(cmd::stream &s)

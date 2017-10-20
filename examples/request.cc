@@ -12,11 +12,8 @@
 int main(int argc, char *argv[])
 {
     try {
-        auto sock = cmd::http_pool::get_connection("www.alucard.io", 443, true);
-        cmd::stream stream{sock};
-        cmd::http_request r{stream};
+        cmd::http_request r{"https://www.alucard.io/index.html"};
         r.set_request_method("GET");
-        r.set_resource("/index.html");
         r.connect();
         cmd::http_response response = r.response();
 

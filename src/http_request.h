@@ -18,6 +18,7 @@ namespace cmd
 class http_request
 {
 public:
+    explicit http_request(const std::string &url);
     explicit http_request(cmd::stream &stream);
     void set_request_method(const std::string &method);
     void set_header(const std::string &header, const std::string &value);
@@ -27,9 +28,11 @@ public:
     cmd::http_response response();
 
 private:
-    std::string host, request_method, resource, body;
+    std::string request_method, resource, body;
     std::map<std::string, std::string> headers;
-    cmd::stream &stream;
+    cmd::stream *stream;
+    cmd::http_response resp;
+    bool connected;
 };
 }  // namespace cmd
 
