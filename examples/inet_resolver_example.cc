@@ -27,17 +27,20 @@ int main(int argc, char *argv[])
 {
     for (int i = 1; i < argc; i++) {
         std::cout << "[+] " << argv[i] << "\n";
+        try {
+            cmd::inet_resolver tcp_options{argv[i], 0, cmd::inet_proto::tcp,
+                                           cmd::inet_family::unspecified};
+            for (auto &addr : tcp_options.addresses)
+                print_info(addr);
 
-        cmd::inet_resolver tcp_options{argv[i], 0, cmd::inet_proto::tcp,
-                                       cmd::inet_family::unspecified};
-        for (auto &addr : tcp_options.addresses)
-            print_info(addr);
+            cmd::inet_resolver udp_options{argv[i], 0, cmd::inet_proto::udp,
+                                           cmd::inet_family::unspecified};
+            for (auto &addr : udp_options.addresses)
+                print_info(addr);
 
-        cmd::inet_resolver udp_options{argv[i], 0, cmd::inet_proto::udp,
-                                       cmd::inet_family::unspecified};
-        for (auto &addr : udp_options.addresses)
-            print_info(addr);
-
-        std::cout << "\n";
+            std::cout << "\n";
+        } catch (std::exception &e) {
+            std::cerr << "Exception: " << e.what() << "\n";
+        }
     }
 }

@@ -79,7 +79,7 @@ void cmd::tcp_socket::connect_host(const std::string &host, int port)
             continue;
 
         if (::connect(sock_fd, address.addr.ai_addr, address.addr.ai_addrlen) != -1)
-            break;  // Success!
+            return;  // Success!
 
         ::close(sock_fd);  // close, try next
     }
