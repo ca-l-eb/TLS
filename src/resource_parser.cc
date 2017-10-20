@@ -1,19 +1,19 @@
 #include <regex>
-#include <string>
 
 #include "resource_parser.h"
 
-void parse(const std::string &url)
+std::tuple<std::string, std::string, int, std::string> cmd::resource_parser::parse(
+    const std::string &url)
 {
     static std::regex re{
-        R"(^(\S+)://([A-Za-z0-9.-]{2,})(?::(\d+))?(/[/A-Za-z0-9-._~:/?#\[\]@!$&'()*+,;=`]*)?$)"};
+        R"(^(?:(\S+)://)?([A-Za-z0-9.-]{2,})(?::(\d+))?(/[/A-Za-z0-9-._~:/?#\[\]%@!$&'()*+,;=`]*)?$)"};
     std::smatch matcher;
     std::regex_match(url, matcher, re);
 
-    std::string host{};
-    int port;
-    std::string proto{};
-    std::string resource{};
+    std::string proto;
+    std::string host;
+    std::string resource;
+    int port = -1;
     if (matcher.empty())
         throw std::runtime_error("Invalid url: " + url);
 
@@ -26,9 +26,10 @@ void parse(const std::string &url)
             port = 80;
         else if (proto == "https" || proto == "wss")
             port = 443;
-        else
-            throw std::runtime_error("Unsupported protocol: " + proto);
     }
     if (!matcher.str(4).empty())
         resource = matcher.str(4);
+    else
+        resource = "/";
+    return {proto, host, port, resource};
 }
