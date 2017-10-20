@@ -10,9 +10,7 @@
 
 namespace cmd
 {
-namespace websocket
-{
-enum class opcode : unsigned char {
+enum class websocket_opcode : unsigned char {
     continuation = 0x0,
     text = 0x1,
     binary = 0x2,
@@ -21,7 +19,7 @@ enum class opcode : unsigned char {
     pong = 0xA
 };
 
-enum class status_code : uint16_t {
+enum class websocket_status_code : uint16_t {
     normal = 1000,
     going_away = 1001,
     protocol_error = 1002,
@@ -37,26 +35,26 @@ enum class status_code : uint16_t {
     tls_handshake_error = 1015  // don't send
 };
 
-struct frame {
+struct websocket_frame {
     bool fin;
-    opcode op;
+    websocket_opcode op;
     std::vector<unsigned char> data;
 };
 
-static const std::string guid{"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"};
+static const std::string websocket_guid{"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"};
 
-class socket
+class websocket
 {
 public:
-    socket(const std::string &resource, cmd::stream &stream);
-    //    socket(const socket &) = delete;
-    //    socket &operator=(const socket &) = delete;
-    ~socket();
+    websocket(const std::string &url);
+    websocket(const socket &) = delete;
+    websocket &operator=(const socket &) = delete;
+    ~websocket();
     void connect();
     void close();
     int send(const std::string &str);
     int send(const void *buffer, size_t size);
-    cmd::websocket::frame next_frame();
+    websocket_frame next_frame();
     std::vector<unsigned char> next_message();
     void next_message(std::vector<unsigned char> &buf);
 
@@ -66,15 +64,13 @@ private:
     bool closed;
 
     void check_websocket_upgrade(const std::string &expect, cmd::http_response &response);
-    std::vector<unsigned char> build_frame(const void *buffer, size_t size,
-                                           cmd::websocket::opcode op);
+    std::vector<unsigned char> build_frame(const void *buffer, size_t size, websocket_opcode op);
     unsigned char *resize_buffer_and_write_size(std::vector<unsigned char> &buf, size_t size);
     void write_masked_data(const uint8_t *in, unsigned char *out, size_t size);
     void pong(std::vector<unsigned char> &msg);
-    void close(websocket::status_code);
+    void close(websocket_status_code);
 };
 
-}  // namespace websocket
 }  // namespace cmd
 
 #endif
