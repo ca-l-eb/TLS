@@ -18,30 +18,41 @@ using random_byte_engine =
 thread_local random_byte_engine generator{
     static_cast<unsigned char>(std::chrono::system_clock::now().time_since_epoch().count())};
 
-cmd::websocket::websocket(const std::string &url) : stream{nullptr}, closed{false}
-{
-    std::string proto, host;
-    int port;
-    std::tie(proto, host, port, resource) = cmd::resource_parser::parse(url);
-    if (port <= 0)
-        throw cmd::socket_exception{"Invalid port " + std::to_string(port)};
-
-    cmd::socket::ptr sock;
-    if (port == 80 || proto == "ws")
-        sock = std::make_shared<cmd::tcp_socket>();
-    else if (port == 443 || proto == "wss")
-        sock = std::make_shared<cmd::tls_socket>();
-    sock->connect(host, port);
-    stream = cmd::stream{sock};
-}
+cmd::websocket::websocket() : stream{nullptr}, closed{false} {}
 
 cmd::websocket::~websocket()
 {
     close();
 }
 
-void cmd::websocket::connect()
+void cmd::websocket::connect(const std::string &url)
 {
+    // Connect to the host given by the url from the constructor
+    int port;
+    std::string proto, host, resource;
+    std::tie(proto, host, port, resource) = cmd::resource_parser::parse(url);
+    bool secure = port == 443 || proto == "wss";
+
+    connect(host, port, resource, secure);
+}
+
+void cmd::websocket::connect(const std::string &host, int port, const std::string &resource,
+                             bool secure)
+{
+    if (port <= 0)
+        throw cmd::socket_exception{"Invalid port " + std::to_string(port)};
+
+    cmd::socket::ptr sock;
+    if (secure)
+        sock = std::make_shared<cmd::tls_socket>();
+    else
+        sock = std::make_shared<cmd::tcp_socket>();
+
+    sock->connect(host, port);
+    stream = cmd::stream{sock};
+
+    // Do WebSocket upgrade using the connected stream
+
     // Want 16 byte random key
     std::vector<uint8_t> nonce(16);
     std::generate(nonce.begin(), nonce.end(), std::ref(generator));

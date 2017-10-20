@@ -8,8 +8,8 @@
 int main(int argc, char *argv[])
 {
     try {
-        cmd::websocket sock{"ws://demos.kaazing.com/echo"};
-        sock.connect();
+        cmd::websocket sock;
+        sock.connect("ws://demos.kaazing.com/echo");
         std::string s = "Hello, world!";
         sock.send(s);
         sock.close();

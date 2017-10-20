@@ -46,11 +46,12 @@ static const std::string websocket_guid{"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"};
 class websocket
 {
 public:
-    websocket(const std::string &url);
+    websocket();
     websocket(const socket &) = delete;
     websocket &operator=(const socket &) = delete;
     ~websocket();
-    void connect();
+    void connect(const std::string &url);
+    void connect(const std::string &host, int port, const std::string &resource, bool secure);
     void close();
     int send(const std::string &str);
     int send(const void *buffer, size_t size);
@@ -60,7 +61,6 @@ public:
 
 private:
     cmd::stream stream;
-    std::string resource;
     bool closed;
 
     void check_websocket_upgrade(const std::string &expect, cmd::http_response &response);
