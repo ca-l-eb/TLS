@@ -1,12 +1,14 @@
 #include <cstring>
 
+#include "exceptions.h"
 #include "stream.h"
 #include "tokenizer.h"
 
+cmd::stream::stream() : sock{nullptr}, remaining_in_buffer{0} {}
+
 cmd::stream::stream(cmd::socket::ptr sock) : sock{sock}, remaining_in_buffer{0}
 {
-    if (sock == nullptr)
-        throw std::runtime_error("nullptr passed to cmd::stream");
+    buffer.resize(4096);
 }
 
 std::string cmd::stream::next_line()
@@ -23,9 +25,9 @@ size_t cmd::stream::next_line(std::string &line)
     // has_more buffers data and resets buf_ptr and remaining_in_buffer
     while (has_more()) {
         auto remaining = static_cast<size_t>(remaining_in_buffer);
-        char *next = cmd::tokenizer::get_line(buf_ptr, remaining, line, tok);
-        remaining_in_buffer -= next - buf_ptr;
-        buf_ptr = next;
+        char *next = cmd::tokenizer::get_line(&buffer[buf_idx], remaining, line, tok);
+        remaining_in_buffer -= next - &buffer[buf_idx];
+        buf_idx = next - &buffer[0];
         if (tok == cmd::tokenizer::token::WANT_MORE)
             continue;
 
@@ -47,12 +49,12 @@ size_t cmd::stream::read(std::string &s, size_t amount)
     while (has_more()) {
         auto remaining = static_cast<size_t>(remaining_in_buffer);
         if (remaining >= amount) {
-            s.append(buf_ptr, amount);
+            s.append(&buffer[buf_idx], amount);
             remaining_in_buffer -= amount;
-            buf_ptr += amount;
+            buf_idx += amount;
             break;
         } else {
-            s.append(buf_ptr, remaining);
+            s.append(&buffer[buf_idx], remaining);
             amount -= remaining_in_buffer;
             remaining_in_buffer = 0;
         }
@@ -67,13 +69,13 @@ size_t cmd::stream::read(void *buf, size_t amount)
     while (has_more()) {
         auto remaining = static_cast<size_t>(remaining_in_buffer);
         if (remaining >= amount) {
-            std::memcpy(c, buf_ptr, amount);
+            std::memcpy(c, &buffer[buf_idx], amount);
             remaining_in_buffer -= amount;
-            buf_ptr += amount;
+            buf_idx += amount;
             read += amount;
             break;
         } else {
-            std::memcpy(c, buf_ptr, remaining);
+            std::memcpy(c, &buffer[buf_idx], remaining);
             amount -= remaining_in_buffer;
             read += remaining_in_buffer;
             c += remaining_in_buffer;
@@ -85,6 +87,8 @@ size_t cmd::stream::read(void *buf, size_t amount)
 
 size_t cmd::stream::write(const void *buf, size_t amount)
 {
+    if (sock == nullptr)
+        return 0;
     auto wrote = sock->send(buf, amount, 0);
     if (wrote < 0)
         return 0;
@@ -99,9 +103,9 @@ size_t cmd::stream::write(const std::string &s)
 void cmd::stream::buffer_data()
 {
     // Only buffer data if there is no more in buffer
-    if (remaining_in_buffer == 0) {
-        remaining_in_buffer = sock->recv(buffer, sizeof(buffer), 0);
-        buf_ptr = buffer;  // Reset buf_ptr
+    if (sock != nullptr && remaining_in_buffer == 0) {
+        remaining_in_buffer = sock->recv(buffer.data(), buffer.size(), 0);
+        buf_idx = 0;  // Reset buf_ptr
     }
 }
 

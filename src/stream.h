@@ -10,7 +10,8 @@ namespace cmd
 class stream
 {
 public:
-    stream(cmd::socket::ptr sock);
+    stream();
+    explicit stream(cmd::socket::ptr sock);
 
     // Return next line in stream
     std::string next_line();
@@ -32,8 +33,8 @@ public:
 private:
     cmd::socket::ptr sock;
 
-    char buffer[4096];
-    char *buf_ptr;
+    std::vector<char> buffer;
+    int buf_idx;
     ssize_t remaining_in_buffer;
 
     void buffer_data();
