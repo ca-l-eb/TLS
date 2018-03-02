@@ -52,23 +52,23 @@ public:
     ~websocket();
     void connect(const std::string &url);
     void connect(const std::string &host, int port, const std::string &resource, bool secure);
-    void close();
+    void close(websocket_status_code = websocket_status_code::normal);
     int send(const std::string &str);
     int send(const void *buffer, size_t size);
     websocket_frame next_frame();
     std::vector<unsigned char> next_message();
-    void next_message(std::vector<unsigned char> &buf);
+    size_t next_message(std::vector<unsigned char> &buf);
 
 private:
     cmd::stream stream;
     bool closed;
+    uint16_t close_code;
 
     void check_websocket_upgrade(const std::string &expect, cmd::http_response &response);
     std::vector<unsigned char> build_frame(const void *buffer, size_t size, websocket_opcode op);
     unsigned char *resize_buffer_and_write_size(std::vector<unsigned char> &buf, size_t size);
     void write_masked_data(const uint8_t *in, unsigned char *out, size_t size);
     void pong(std::vector<unsigned char> &msg);
-    void close(websocket_status_code);
 };
 
 }  // namespace cmd

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <map>
 #include <random>
+#include <iostream>
 
 #include "base64.h"
 #include "exceptions.h"
@@ -32,6 +33,8 @@ void cmd::websocket::connect(const std::string &url)
     std::string proto, host, resource;
     std::tie(proto, host, port, resource) = cmd::resource_parser::parse(url);
     bool secure = port == 443 || proto == "wss";
+    if (secure)
+        port = 443;
 
     connect(host, port, resource, secure);
 }
@@ -274,8 +277,9 @@ cmd::websocket_frame cmd::websocket::next_frame()
                 break;
             if (len >= 2) {
                 // Respond with the same code sent
-                uint16_t code = (frame.data[0] << 8) | frame.data[1];
-                close(static_cast<websocket_status_code>(code));
+                close_code = (frame.data[0] << 8) | frame.data[1];
+                std::cerr << "Websocket by peer with code " << close_code << "\n";
+                close(static_cast<websocket_status_code>(close_code));
             } else {
                 // Invalid WebSocket close frame... respond with normal close response
                 close(websocket_status_code::normal);
@@ -308,45 +312,50 @@ std::vector<unsigned char> cmd::websocket::next_message()
 }
 
 // Fill buf with the next message, resizing if necessary
-void cmd::websocket::next_message(std::vector<unsigned char> &buf)
+size_t cmd::websocket::next_message(std::vector<unsigned char> &buf)
 {
-    websocket_frame f = next_frame();
-    websocket_opcode code = f.op;
-    buf.clear();
-    if (code == websocket_opcode::text || code == websocket_opcode::binary)
-        buf.insert(buf.end(), f.data.begin(), f.data.end());
+    size_t size = 0;
+    try {
+        websocket_frame f = next_frame();
+        websocket_opcode code = f.op;
+        buf.clear();
+        if (code == websocket_opcode::text || code == websocket_opcode::binary)
+            buf.insert(buf.end(), f.data.begin(), f.data.end());
+        size += f.data.size();
 
-    while (!f.fin) {
-        f = next_frame();
-        switch (f.op) {
-            case websocket_opcode::continuation:
-                buf.insert(buf.end(), f.data.begin(), f.data.end());
-                break;
-            case websocket_opcode::text:
-            case websocket_opcode::binary:
-                // We're expecting continuation frame if the FIN bit wasn't set
-                close(websocket_status_code::inconsistent_data);
-                break;
-            case websocket_opcode::close:
-            case websocket_opcode::ping:
-            case websocket_opcode::pong:
-                // next_frame handles pings and close
-                break;
-            default:
-                close(websocket_status_code::protocol_error);
+        while (!f.fin) {
+            f = next_frame();
+            size += f.data.size();
+            switch (f.op) {
+                case websocket_opcode::continuation:
+                    buf.insert(buf.end(), f.data.begin(), f.data.end());
+                    break;
+                case websocket_opcode::text:
+                case websocket_opcode::binary:
+                    // We're expecting continuation frame if the FIN bit wasn't set
+                    close(websocket_status_code::inconsistent_data);
+                    break;
+                case websocket_opcode::close:
+                case websocket_opcode::ping:
+                case websocket_opcode::pong:
+                    // next_frame handles pings and close
+                    break;
+                default:
+                    close(websocket_status_code::protocol_error);
+            }
         }
+    } catch (std::exception &e) {
+        std::cerr << "WEBSOCKET ERROR " << e.what() << "\n";
     }
-}
-
-void cmd::websocket::close()
-{
-    if (!closed)
-        close(websocket_status_code::normal);
-    closed = true;
+    return size;
 }
 
 void cmd::websocket::close(websocket_status_code code)
 {
+    if (closed)
+        return;
+    closed = true;
+
     auto c = static_cast<std::underlying_type<websocket_status_code>::type>(code);
 
     // Make sure the code is in network byte order
