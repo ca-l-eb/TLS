@@ -1,5 +1,7 @@
+#include <poll.h>
 #include <unistd.h>
 #include <cstring>
+#include <cerrno>
 
 #include "exceptions.h"
 #include "udp_socket.h"
@@ -73,12 +75,52 @@ ssize_t cmd::udp_socket::recv(void *buffer, size_t size, int flags)
     return ::recv(sock_fd, buffer, size, flags);
 }
 
+ssize_t cmd::udp_socket::recv(void *buffer, size_t size, int flags, int timeout_ms)
+{
+    pollfd fds[1];
+    fds[0].fd = sock_fd;
+    fds[0].events = POLLIN;
+    auto ret = poll(fds, 1, timeout_ms);
+
+    if (ret == 0 || fds[0].revents & POLLERR) {
+        // We didn't get POLLIN in time
+        return 0;
+    } else if (ret == -1) {
+        throw cmd::socket_exception{"Poll error: " + std::string{std::strerror(errno)}};
+    } else {
+        return recv(buffer, size, flags);
+    }
+}
+
 ssize_t cmd::udp_socket::recv(cmd::inet_addr &from, void *buffer, size_t size, int flags)
 {
     return ::recvfrom(sock_fd, buffer, size, flags, from.addr.ai_addr, &from.addr.ai_addrlen);
 }
 
+ssize_t cmd::udp_socket::recv(cmd::inet_addr &from, void *buffer, size_t size, int flags,
+                              int timeout_ms)
+{
+    pollfd fds[1];
+    fds[0].fd = sock_fd;
+    fds[0].events = POLLIN;
+    auto ret = poll(fds, 1, timeout_ms);
+
+    // We didn't get POLLIN in time
+    if (ret == 0 || fds[0].revents & POLLERR) {
+        return 0;
+    } else if (ret == -1) {
+        throw cmd::socket_exception{"Poll: " + std::string{std::strerror(errno)}};
+    } else {
+        return recv(from, buffer, size, flags);
+    }
+}
+
 const cmd::inet_addr cmd::udp_socket::get_address() const
 {
     return addr;
+}
+
+int cmd::udp_socket::get_fd()
+{
+    return sock_fd;
 }

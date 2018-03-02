@@ -22,12 +22,16 @@ public:
     ssize_t send(const void *buffer, size_t size, int flags = 0);
     ssize_t send(const std::string &str, int flags = 0);
     ssize_t recv(void *buffer, size_t size, int flags = 0);
+    ssize_t recv(void *buffer, size_t size, int flags, int timeout_ms);
 
     ssize_t send(const inet_addr &addr, const void *buffer, size_t size, int flags = 0);
     ssize_t send(const inet_addr &addr, const std::string &str, int flags = 0);
     ssize_t recv(inet_addr &from, void *buffer, size_t size, int flags = 0);
+    ssize_t recv(inet_addr &from, void *buffer, size_t size, int flags, int timeout_ms);
 
     const cmd::inet_addr get_address() const;
+
+    int get_fd();
 
 public:
     int sock_fd;
